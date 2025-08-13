@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/go-redis/redis_rate/v10"
+	redis_rate "github.com/go-redis/redis_rate/v10"
 	"github.com/jules-labs/go-api-prod-template/internal/transport/http/response"
 )
 
