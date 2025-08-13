@@ -1,0 +1,81 @@
+openapi: 3.0.0
+info:
+  title: Go Production API
+  description: An example API to showcase production-ready practices in Go.
+  version: 1.0.0
+servers:
+  - url: /v1
+paths:
+  /profile:
+    get:
+      summary: Get user profile
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      responses:
+        '200':
+          description: A user profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+  /apikeys:
+    post:
+      summary: Create a new API key
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/APIKeyRequest'
+      responses:
+        '201':
+          description: API key created
+  /vendor/ping:
+    get:
+      summary: Ping a vendor service
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Vendor service is reachable
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        email:
+          type: string
+          format: email
+        plan:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    APIKeyRequest:
+      type: object
+      properties:
+        label:
+          type: string
+        rate_rpm:
+          type: integer
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

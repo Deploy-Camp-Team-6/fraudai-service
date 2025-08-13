@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  api:
+    image: go-api # Replace with your image registry
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+    environment:
+      - APP_ENV=production
+      - HTTP_ADDR=0.0.0.0
+      - HTTP_PORT=8080
+      - PG_DSN=postgres://user:password@postgres:5432/app?sslmode=disable # Use a managed DB in prod
+      - REDIS_ADDR=redis:6379
+      - JWT_SECRET_FILE=/run/secrets/jwt_secret
+      - DEBUG=false
+    secrets:
+      - jwt_secret
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    ports:
+      - "8080:8080" # Exposed via Traefik in a real setup
+    networks:
+      - web
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=app
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - web # Should be on a private network with the API
+
+  redis:
+    image: redis:7-alpine
+    networks:
+      - web # Should be on a private network with the API
+
+volumes:
+  postgres_data:
+
+secrets:
+  jwt_secret:
+    external: true
+
+networks:
+  web:
+    driver: overlay
