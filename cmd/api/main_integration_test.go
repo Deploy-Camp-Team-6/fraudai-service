@@ -18,10 +18,7 @@ import (
 	"github.com/jules-labs/go-api-prod-template/internal/service"
 	httptransport "github.com/jules-labs/go-api-prod-template/internal/transport/http"
 	"github.com/rs/zerolog"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	testcontainers "github.com/testcontainers/testcontainers-go"
 	postgres "github.com/testcontainers/testcontainers-go/modules/postgres"
 	redis "github.com/testcontainers/testcontainers-go/modules/redis"
 )
@@ -41,27 +38,27 @@ func (s *IntegrationTestSuite) SetupSuite() {
 	var err error
 
 	// Start Postgres
-	s.pgContainer, err = postgres.RunContainer(ctx,
-		testcontainers.WithImage("postgres:16-alpine"),
+	s.pgContainer, err = postgres.Run(ctx,
+		"postgres:16-alpine",
 		postgres.WithDatabase("test-db"),
 		postgres.WithUsername("user"),
 		postgres.WithPassword("password"),
 	)
-	require.NoError(s.T(), err)
+	s.Require().NoError(err)
 	s.pgDSN, err = s.pgContainer.ConnectionString(ctx, "sslmode=disable")
-	require.NoError(s.T(), err)
+	s.Require().NoError(err)
 
 	// Run migrations
 	m, err := migrate.New("file://../../migrations", s.pgDSN)
-	require.NoError(s.T(), err)
+	s.Require().NoError(err)
 	err = m.Up()
-	require.NoError(s.T(), err)
+	s.Require().NoError(err)
 
 	// Start Redis
-	s.rdContainer, err = redis.RunContainer(ctx, testcontainers.WithImage("redis:7-alpine"))
-	require.NoError(s.T(), err)
+	s.rdContainer, err = redis.Run(ctx, "redis:7-alpine")
+	s.Require().NoError(err)
 	s.redisAddr, err = s.rdContainer.Endpoint(ctx, "")
-	require.NoError(s.T(), err)
+	s.Require().NoError(err)
 
 	// Create app
 	cfg := config.Config{
@@ -69,7 +66,7 @@ func (s *IntegrationTestSuite) SetupSuite() {
 		RedisAddr: s.redisAddr,
 	}
 	dbConn, err := sql.Open("pgx", cfg.PGDSN)
-	require.NoError(s.T(), err)
+	s.Require().NoError(err)
 
 	s.queries = db.New(dbConn)
 	redisClient := db.NewRedisClient(cfg.RedisAddr, "", 0)
@@ -87,20 +84,20 @@ func (s *IntegrationTestSuite) SetupSuite() {
 
 func (s *IntegrationTestSuite) TearDownSuite() {
 	s.server.Close()
-	require.NoError(s.T(), s.pgContainer.Terminate(context.Background()))
-	require.NoError(s.T(), s.rdContainer.Terminate(context.Background()))
+	s.Require().NoError(s.pgContainer.Terminate(context.Background()))
+	s.Require().NoError(s.rdContainer.Terminate(context.Background()))
 }
 
 func (s *IntegrationTestSuite) TestProfileEndpoint_APIKeyAuth() {
 	// 1. Create a user
 	user, err := s.queries.CreateUser(context.Background(), db.CreateUserParams{Email: "test@example.com", Plan: "free"})
-	require.NoError(s.T(), err)
+	s.Require().NoError(err)
 
 	// 2. Create an API key
 	apiKeyRepo := repo.NewAPIKeyRepository(s.queries)
 	apiKeySvc := service.NewAPIKeyService(apiKeyRepo)
 	plainTextKey, _, err := apiKeySvc.CreateAPIKey(context.Background(), user.ID, "test key", 100)
-	require.NoError(s.T(), err)
+	s.Require().NoError(err)
 
 	// 3. Make request
 	req, _ := http.NewRequest("GET", fmt.Sprintf("%s/v1/profile", s.server.URL), nil)
@@ -108,11 +105,13 @@ func (s *IntegrationTestSuite) TestProfileEndpoint_APIKeyAuth() {
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
-	require.NoError(s.T(), err)
-	defer resp.Body.Close()
+	s.Require().NoError(err)
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	// 4. Assert
-	assert.Equal(s.T(), http.StatusOK, resp.StatusCode)
+	s.Assert().Equal(http.StatusOK, resp.StatusCode)
 }
 
 func TestIntegration(t *testing.T) {
