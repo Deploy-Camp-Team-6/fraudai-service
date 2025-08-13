@@ -16,7 +16,7 @@ var validate = validator.New()
 
 func HealthzHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("ok"))
+	_, _ = w.Write([]byte("ok"))
 }
 
 func ReadinessHandler(db *sql.DB, redisClient *redis.Client) http.HandlerFunc {
@@ -34,7 +34,7 @@ func ReadinessHandler(db *sql.DB, redisClient *redis.Client) http.HandlerFunc {
 		}
 
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("ok"))
+		_, _ = w.Write([]byte("ok"))
 	}
 }
 

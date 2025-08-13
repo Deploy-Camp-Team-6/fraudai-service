@@ -17,7 +17,7 @@ import (
 func TestThirdPartyClient_Ping(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("pong"))
+		_, _ = w.Write([]byte("pong"))
 	}))
 	defer server.Close()
 
@@ -37,7 +37,7 @@ func TestThirdPartyClient_Retries(t *testing.T) {
 			return
 		}
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("pong"))
+		_, _ = w.Write([]byte("pong"))
 	}))
 	defer server.Close()
 
@@ -90,7 +90,7 @@ func TestThirdPartyClient_CircuitBreaker(t *testing.T) {
 	server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestCount++
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("pong"))
+		_, _ = w.Write([]byte("pong"))
 	})
 
 	pong, err := client.Ping(context.Background())

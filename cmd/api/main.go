@@ -33,7 +33,9 @@ func main() {
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to connect to database")
 	}
-	defer dbConn.Close()
+	defer func() {
+		_ = dbConn.Close()
+	}()
 
 	// Initialize Redis
 	redisClient := db.NewRedisClient(cfg.RedisAddr, cfg.RedisPassword, cfg.RedisDB)
