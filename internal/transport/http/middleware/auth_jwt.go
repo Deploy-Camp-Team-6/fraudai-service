@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/golang-jwt/jwt/v5"
+	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/jules-labs/go-api-prod-template/internal/repo"
 	"github.com/jules-labs/go-api-prod-template/internal/transport/http/response"
 )
