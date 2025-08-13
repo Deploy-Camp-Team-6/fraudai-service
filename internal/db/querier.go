@@ -12,6 +12,7 @@ type Querier interface {
 	CreateAPIKey(ctx context.Context, arg CreateAPIKeyParams) (CreateAPIKeyRow, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error)
 	GetAPIKeyByHash(ctx context.Context, keyHash []byte) (GetAPIKeyByHashRow, error)
+	GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error)
 	// keyset pagination
 	GetUserByID(ctx context.Context, id int64) (GetUserByIDRow, error)
 	ListUsersPaged(ctx context.Context, arg ListUsersPagedParams) ([]ListUsersPagedRow, error)

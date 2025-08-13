@@ -53,9 +53,10 @@ func main() {
 	apiKeySvc := service.NewAPIKeyService(apiKeyRepo)
 	vendorClient := clients.NewThirdPartyClient(cfg.VendorBaseURL, cfg.VendorToken, logger)
 	vendorSvc := service.NewVendorService(vendorClient)
+	authSvc := service.NewAuthService(userRepo, cfg.JWTSecretFile)
 
 	// Setup router
-	router := httptransport.NewRouter(&cfg, dbConn, redisClient, userRepo, apiKeyRepo, profileSvc, apiKeySvc, vendorSvc, logger)
+	router := httptransport.NewRouter(&cfg, dbConn, redisClient, userRepo, apiKeyRepo, profileSvc, apiKeySvc, vendorSvc, authSvc, logger)
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf("%s:%d", cfg.HTTPAddr, cfg.HTTPPort),

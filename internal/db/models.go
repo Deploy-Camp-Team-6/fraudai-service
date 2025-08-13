@@ -26,4 +26,5 @@ type User struct {
 	Plan         string         `json:"plan"`
 	CreatedAt    time.Time      `json:"created_at"`
 	UpdatedAt    time.Time      `json:"updated_at"`
+	Name         sql.NullString `json:"name"`
 }

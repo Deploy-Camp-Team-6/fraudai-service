@@ -7,33 +7,68 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"time"
 )
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (email, plan) VALUES ($1, $2)
-RETURNING id, email, plan, created_at, updated_at
+INSERT INTO users (name, email, password_hash) VALUES ($1, $2, $3)
+RETURNING id, name, email, plan, created_at, updated_at
 `
 
 type CreateUserParams struct {
-	Email string `json:"email"`
-	Plan  string `json:"plan"`
+	Name         sql.NullString `json:"name"`
+	Email        string         `json:"email"`
+	PasswordHash sql.NullString `json:"password_hash"`
 }
 
 type CreateUserRow struct {
-	ID        int64     `json:"id"`
-	Email     string    `json:"email"`
-	Plan      string    `json:"plan"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID        int64          `json:"id"`
+	Name      sql.NullString `json:"name"`
+	Email     string         `json:"email"`
+	Plan      string         `json:"plan"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error) {
-	row := q.db.QueryRowContext(ctx, createUser, arg.Email, arg.Plan)
+	row := q.db.QueryRowContext(ctx, createUser, arg.Name, arg.Email, arg.PasswordHash)
 	var i CreateUserRow
 	err := row.Scan(
 		&i.ID,
+		&i.Name,
 		&i.Email,
+		&i.Plan,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getUserByEmail = `-- name: GetUserByEmail :one
+SELECT id, name, email, password_hash, plan, created_at, updated_at
+FROM users
+WHERE email = $1
+`
+
+type GetUserByEmailRow struct {
+	ID           int64          `json:"id"`
+	Name         sql.NullString `json:"name"`
+	Email        string         `json:"email"`
+	PasswordHash sql.NullString `json:"password_hash"`
+	Plan         string         `json:"plan"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+}
+
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
+	var i GetUserByEmailRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Email,
+		&i.PasswordHash,
 		&i.Plan,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -43,17 +78,18 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateU
 
 const getUserByID = `-- name: GetUserByID :one
 
-SELECT id, email, plan, created_at, updated_at
+SELECT id, name, email, plan, created_at, updated_at
 FROM users
 WHERE id = $1
 `
 
 type GetUserByIDRow struct {
-	ID        int64     `json:"id"`
-	Email     string    `json:"email"`
-	Plan      string    `json:"plan"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID        int64          `json:"id"`
+	Name      sql.NullString `json:"name"`
+	Email     string         `json:"email"`
+	Plan      string         `json:"plan"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
 }
 
 // keyset pagination
@@ -62,6 +98,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id int64) (GetUserByIDRow, er
 	var i GetUserByIDRow
 	err := row.Scan(
 		&i.ID,
+		&i.Name,
 		&i.Email,
 		&i.Plan,
 		&i.CreatedAt,
@@ -71,7 +108,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id int64) (GetUserByIDRow, er
 }
 
 const listUsersPaged = `-- name: ListUsersPaged :many
-SELECT id, email, plan, created_at FROM users
+SELECT id, name, email, plan, created_at FROM users
 WHERE id > $1 ORDER BY id ASC LIMIT $2
 `
 
@@ -81,10 +118,11 @@ type ListUsersPagedParams struct {
 }
 
 type ListUsersPagedRow struct {
-	ID        int64     `json:"id"`
-	Email     string    `json:"email"`
-	Plan      string    `json:"plan"`
-	CreatedAt time.Time `json:"created_at"`
+	ID        int64          `json:"id"`
+	Name      sql.NullString `json:"name"`
+	Email     string         `json:"email"`
+	Plan      string         `json:"plan"`
+	CreatedAt time.Time      `json:"created_at"`
 }
 
 func (q *Queries) ListUsersPaged(ctx context.Context, arg ListUsersPagedParams) ([]ListUsersPagedRow, error) {
@@ -98,6 +136,7 @@ func (q *Queries) ListUsersPaged(ctx context.Context, arg ListUsersPagedParams) 
 		var i ListUsersPagedRow
 		if err := rows.Scan(
 			&i.ID,
+			&i.Name,
 			&i.Email,
 			&i.Plan,
 			&i.CreatedAt,

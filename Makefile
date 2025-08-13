@@ -63,4 +63,4 @@ db-migrate:
 
 sqlc:
 	@echo "Generating sqlc code..."
-	@sqlc generate
+	@~/go/bin/sqlc generate

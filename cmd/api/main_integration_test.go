@@ -77,8 +77,9 @@ func (s *IntegrationTestSuite) SetupSuite() {
 	profileSvc := service.NewProfileService(userRepo)
 	apiKeySvc := service.NewAPIKeyService(apiKeyRepo)
 	vendorSvc := service.NewVendorService(clients.NewThirdPartyClient("", "", zerolog.Nop())) // Not needed for this test
+	authSvc := service.NewAuthService(userRepo, "")                                          // Not needed for this test
 
-	router := httptransport.NewRouter(&cfg, dbConn, redisClient, userRepo, apiKeyRepo, profileSvc, apiKeySvc, vendorSvc, zerolog.Nop())
+	router := httptransport.NewRouter(&cfg, dbConn, redisClient, userRepo, apiKeyRepo, profileSvc, apiKeySvc, vendorSvc, authSvc, zerolog.Nop())
 	s.server = httptest.NewServer(router)
 }
 
@@ -90,7 +91,10 @@ func (s *IntegrationTestSuite) TearDownSuite() {
 
 func (s *IntegrationTestSuite) TestProfileEndpoint_APIKeyAuth() {
 	// 1. Create a user
-	user, err := s.queries.CreateUser(context.Background(), db.CreateUserParams{Email: "test@example.com", Plan: "free"})
+	user, err := s.queries.CreateUser(context.Background(), db.CreateUserParams{
+		Name:  sql.NullString{String: "test user", Valid: true},
+		Email: "test@example.com",
+	})
 	s.Require().NoError(err)
 
 	// 2. Create an API key

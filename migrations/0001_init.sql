@@ -10,6 +10,8 @@ CREATE TABLE users (
   updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+ALTER TABLE users ADD COLUMN name TEXT;
+
 CREATE TABLE api_keys (
   id          BIGSERIAL PRIMARY KEY,
   user_id     BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
