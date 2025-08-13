@@ -26,7 +26,7 @@ import (
 )
 
 type IntegrationTestSuite struct {
-	suite.Suite
+	*suite.Suite
 	pgContainer *postgres.PostgresContainer
 	rdContainer *redis.RedisContainer
 	pgDSN       string
