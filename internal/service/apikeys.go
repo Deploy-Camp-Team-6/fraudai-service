@@ -5,8 +5,8 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 
-	"github.com/jules-labs/go-api-prod-template/internal/db"
 	"database/sql"
+	"github.com/jules-labs/go-api-prod-template/internal/db"
 	"github.com/jules-labs/go-api-prod-template/internal/repo"
 )
 

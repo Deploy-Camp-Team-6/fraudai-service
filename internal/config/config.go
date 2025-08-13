@@ -15,9 +15,9 @@ type Config struct {
 	HTTPAddr string `mapstructure:"HTTP_ADDR"`
 	HTTPPort int    `mapstructure:"HTTP_PORT"`
 
-	PGDSN               string        `mapstructure:"PG_DSN"`
-	PGMaxOpenConns      int           `mapstructure:"PG_MAX_OPEN_CONNS"`
-	PGMaxIdleConns      int           `mapstructure:"PG_MAX_IDLE_CONNS"`
+	PGDSN             string        `mapstructure:"PG_DSN"`
+	PGMaxOpenConns    int           `mapstructure:"PG_MAX_OPEN_CONNS"`
+	PGMaxIdleConns    int           `mapstructure:"PG_MAX_IDLE_CONNS"`
 	PGConnMaxLifetime time.Duration `mapstructure:"PG_CONN_MAX_LIFETIME"`
 
 	RedisAddr     string `mapstructure:"REDIS_ADDR"`

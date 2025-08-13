@@ -57,7 +57,7 @@ func ProfileHandler(profileSvc service.ProfileService) http.HandlerFunc {
 }
 
 type apiKeyRequest struct {
-	Label  string `json:"label" validate:"required,min=3,max=50"`
+	Label   string `json:"label" validate:"required,min=3,max=50"`
 	RateRPM int    `json:"rate_rpm" validate:"omitempty,min=1,max=10000"`
 }
 
@@ -85,7 +85,6 @@ func APIKeyHandler(apiKeySvc service.APIKeyService) http.HandlerFunc {
 			rateRPM = req.RateRPM
 		}
 
-
 		plaintextKey, createdKey, err := apiKeySvc.CreateAPIKey(r.Context(), identity.UserID, req.Label, rateRPM)
 		if err != nil {
 			response.RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -93,7 +92,7 @@ func APIKeyHandler(apiKeySvc service.APIKeyService) http.HandlerFunc {
 		}
 
 		response.RespondWithJSON(w, http.StatusCreated, map[string]interface{}{
-			"key":    plaintextKey,
+			"key":     plaintextKey,
 			"details": createdKey,
 		})
 	}
