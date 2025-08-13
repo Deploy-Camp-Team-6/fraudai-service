@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/golang-migrate/migrate/v4"
+	migrate "github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jules-labs/go-api-prod-template/internal/clients"
@@ -19,9 +19,9 @@ import (
 	httptransport "github.com/jules-labs/go-api-prod-template/internal/transport/http"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
-	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/modules/postgres"
-	"github.com/testcontainers/testcontainers-go/modules/redis"
+	testcontainers "github.com/testcontainers/testcontainers-go"
+	postgres "github.com/testcontainers/testcontainers-go/modules/postgres"
+	redis "github.com/testcontainers/testcontainers-go/modules/redis"
 )
 
 type IntegrationTestSuite struct {
