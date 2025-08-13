@@ -1,7 +1,7 @@
 package db
 
 import (
-	"github.com/redis/go-redis/v9"
+	redis "github.com/redis/go-redis/v9"
 )
 
 // NewRedisClient creates a new Redis client.
