@@ -13,7 +13,7 @@ import (
 	"github.com/jules-labs/go-api-prod-template/internal/service"
 	app_middleware "github.com/jules-labs/go-api-prod-template/internal/transport/http/middleware"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/redis/go-redis/v9"
+	redis "github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 )
 
