@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/go-chi/chi/v5"
+	chi "github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-redis/redis_rate/v10"
+	redis_rate "github.com/go-redis/redis_rate/v10"
 	"github.com/jules-labs/go-api-prod-template/internal/config"
 	"github.com/jules-labs/go-api-prod-template/internal/repo"
 	"github.com/jules-labs/go-api-prod-template/internal/service"
