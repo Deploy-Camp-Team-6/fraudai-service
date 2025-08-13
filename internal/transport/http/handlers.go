@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/go-playground/validator/v10"
+	validator "github.com/go-playground/validator/v10"
 	"github.com/jules-labs/go-api-prod-template/internal/service"
 	app_middleware "github.com/jules-labs/go-api-prod-template/internal/transport/http/middleware"
 	"github.com/jules-labs/go-api-prod-template/internal/transport/http/response"
-	"github.com/redis/go-redis/v9"
+	redis "github.com/redis/go-redis/v9"
 )
 
 var validate = validator.New()
