@@ -107,6 +107,7 @@ func MeHandler(profileSvc service.ProfileService) http.HandlerFunc {
 			"id":    user.ID,
 			"name":  user.Name,
 			"email": user.Email,
+			"plan":  user.Plan,
 		})
 	}
 }

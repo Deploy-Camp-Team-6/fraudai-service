@@ -93,9 +93,10 @@ func (s *authService) SignIn(ctx context.Context, email, password string) (db.Ge
 
 func (s *authService) generateToken(userID int64) (string, error) {
 	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub": userID,
-		"exp": time.Now().Add(s.jwtTimeout).Unix(),
-		"iat": time.Now().Unix(),
+		"sub":     userID,
+		"exp":     time.Now().Add(s.jwtTimeout).Unix(),
+		"iat":     time.Now().Unix(),
+		"user_id": userID,
 	})
 
 	tokenString, err := claims.SignedString(s.jwtSecret)
