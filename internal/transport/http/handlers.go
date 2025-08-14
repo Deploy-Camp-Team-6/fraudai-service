@@ -2,10 +2,12 @@ package http
 
 import (
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	chi "github.com/go-chi/chi/v5"
 	validator "github.com/go-playground/validator/v10"
@@ -64,6 +66,16 @@ type apiKeyRequest struct {
 	RateRPM int    `json:"rate_rpm" validate:"omitempty,min=1,max=10000"`
 }
 
+type apiKeyResponse struct {
+	ID         int64      `json:"id"`
+	Label      string     `json:"label"`
+	Key        string     `json:"key"`
+	Active     bool       `json:"active"`
+	RateRPM    int32      `json:"rate_rpm"`
+	LastUsedAt *time.Time `json:"last_used_at,omitempty"`
+	CreatedAt  time.Time  `json:"created_at"`
+}
+
 func APIKeyHandler(apiKeySvc service.APIKeyService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		identity, ok := app_middleware.IdentityFrom(r.Context())
@@ -119,7 +131,31 @@ func ListAPIKeysHandler(apiKeySvc service.APIKeyService) http.HandlerFunc {
 			return
 		}
 
-		response.RespondWithJSON(w, http.StatusOK, keys)
+		resp := make([]apiKeyResponse, len(keys))
+		for i, k := range keys {
+			label := ""
+			if k.Label.Valid {
+				label = k.Label.String
+			}
+
+			var lastUsed *time.Time
+			if k.LastUsedAt.Valid {
+				t := k.LastUsedAt.Time
+				lastUsed = &t
+			}
+
+			resp[i] = apiKeyResponse{
+				ID:         k.ID,
+				Label:      label,
+				Key:        hex.EncodeToString(k.KeyHash),
+				Active:     k.Active,
+				RateRPM:    k.RateRpm,
+				LastUsedAt: lastUsed,
+				CreatedAt:  k.CreatedAt,
+			}
+		}
+
+		response.RespondWithJSON(w, http.StatusOK, resp)
 	}
 }
 

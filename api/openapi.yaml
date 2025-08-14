@@ -160,10 +160,15 @@ components:
           format: int64
         label:
           type: string
+        key:
+          type: string
         active:
           type: boolean
         rate_rpm:
           type: integer
+        last_used_at:
+          type: string
+          format: date-time
         created_at:
           type: string
           format: date-time
