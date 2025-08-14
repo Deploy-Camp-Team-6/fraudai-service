@@ -92,15 +92,17 @@ func (q *Queries) GetAPIKeyByHash(ctx context.Context, keyHash []byte) (GetAPIKe
 }
 
 const listAPIKeysByUser = `-- name: ListAPIKeysByUser :many
-SELECT id, label, active, rate_rpm, created_at FROM api_keys WHERE user_id = $1
+SELECT id, label, key_hash, active, rate_rpm, last_used_at, created_at FROM api_keys WHERE user_id = $1
 `
 
 type ListAPIKeysByUserRow struct {
-	ID        int64          `json:"id"`
-	Label     sql.NullString `json:"label"`
-	Active    bool           `json:"active"`
-	RateRpm   int32          `json:"rate_rpm"`
-	CreatedAt time.Time      `json:"created_at"`
+	ID         int64          `json:"id"`
+	Label      sql.NullString `json:"label"`
+	KeyHash    []byte         `json:"key_hash"`
+	Active     bool           `json:"active"`
+	RateRpm    int32          `json:"rate_rpm"`
+	LastUsedAt sql.NullTime   `json:"last_used_at"`
+	CreatedAt  time.Time      `json:"created_at"`
 }
 
 func (q *Queries) ListAPIKeysByUser(ctx context.Context, userID int64) ([]ListAPIKeysByUserRow, error) {
@@ -115,8 +117,10 @@ func (q *Queries) ListAPIKeysByUser(ctx context.Context, userID int64) ([]ListAP
 		if err := rows.Scan(
 			&i.ID,
 			&i.Label,
+			&i.KeyHash,
 			&i.Active,
 			&i.RateRpm,
+			&i.LastUsedAt,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
