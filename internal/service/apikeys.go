@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 
 	"database/sql"
+
 	"github.com/jules-labs/go-api-prod-template/internal/db"
 	"github.com/jules-labs/go-api-prod-template/internal/repo"
 )

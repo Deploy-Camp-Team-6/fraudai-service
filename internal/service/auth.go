@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	ErrEmailExists    = errors.New("email already exists")
+	ErrEmailExists        = errors.New("email already exists")
 	ErrInvalidCredentials = errors.New("invalid credentials")
 )
 
@@ -50,10 +50,10 @@ func (s *authService) SignUp(ctx context.Context, name, email, password string) 
 
 	// Create user
 	params := db.CreateUserParams{
-		Name:          name,
-		Email:         email,
-		PasswordHash:  string(hashedPassword),
-		Plan:          "free",
+		Name:         name,
+		Email:        email,
+		PasswordHash: string(hashedPassword),
+		Plan:         "free",
 	}
 	user, err := s.userRepo.CreateUser(ctx, params)
 	if err != nil {

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/jules-labs/go-api-prod-template/internal/db"
-	"github.com/jules-labs/go-api-prod-template/internal/repo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"golang.org/x/crypto/bcrypt"
