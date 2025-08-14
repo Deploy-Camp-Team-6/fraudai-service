@@ -68,15 +68,6 @@ func NewRouter(
 			})
 		})
 
-		// Protected API
-		v1.Group(func(protected chi.Router) {
-			apiKeyAuth := app_middleware.APIKeyAuth(apiKeyRepo, userRepo)
-			protected.Use(app_middleware.AuthEither(apiKeyAuth, jwtAuth))
-
-			protected.Get("/profile", ProfileHandler(profileSvc))
-			protected.Get("/vendor/ping", VendorPingHandler(vendorSvc))
-		})
-
 		v1.Route("/apikeys", func(r chi.Router) {
 			r.Use(jwtAuth)
 			r.Get("/", ListAPIKeysHandler(apiKeySvc))
