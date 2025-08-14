@@ -10,7 +10,7 @@ This project is a template for a production-ready web API written in Go. It incl
 - **Authentication**: API Key and JWT (HS256) based authentication.
 - **Rate Limiting**: Per-API key rate limiting using a sliding window algorithm with [redis_rate](https://github.com/go-redis/redis_rate).
 - **External API Client**: Resilient external API calls with [resty](https://github.com/go-resty/resty) and [gobreaker](https://github.com/sony/gobreaker).
-- **Configuration**: Managed with [viper](https://github.com/spf13/viper), loaded from environment variables.
+- **Configuration**: Managed with [viper](https://github.com/spf13/viper), loaded from a YAML file with secrets supplied via environment variables or container secrets.
 - **Observability**:
     - Structured logging with [zerolog](https://github.com/rs/zerolog).
     - Metrics exposed for [Prometheus](https://prometheus.io/).
@@ -37,15 +37,12 @@ This project is a template for a production-ready web API written in Go. It incl
     make db-up
     ```
 
-2.  **Set environment variables:**
-    Create a `.env` file in the root of the project:
-    ```env
-    APP_ENV=development
-    HTTP_PORT=8080
-    PG_DSN="postgres://user:password@localhost:5432/app?sslmode=disable"
-    REDIS_ADDR="localhost:6379"
-    JWT_SECRET_FILE="jwt.secret"
-    DEBUG=true
+2.  **Configure the application:**
+    Non-secret settings live in [`config.yaml`](./config.yaml). Provide secret values such as database credentials via environment variables:
+    ```bash
+    export PG_DSN="postgres://user:password@localhost:5432/app?sslmode=disable"
+    export JWT_SECRET_FILE="jwt.secret"
+    export REDIS_ADDR="localhost:6379"
     ```
     Create the `jwt.secret` file:
     ```bash
@@ -107,7 +104,7 @@ curl http://localhost:8080/v1/profile-jwt \
 
 ## Configuration
 
-All configuration is managed via environment variables. See `internal/config/config.go` for all available options.
+Configuration values are read from `config.yaml`. Secret values like `PG_DSN`, `REDIS_PASSWORD`, or `VENDOR_TOKEN` should be provided via environment variables or container secrets. See `internal/config/config.go` for all available options.
 
 ## Testing
 

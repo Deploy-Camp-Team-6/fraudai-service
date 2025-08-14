@@ -8,13 +8,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - APP_ENV=development
-      - HTTP_ADDR=0.0.0.0
-      - HTTP_PORT=8080
       - PG_DSN=postgres://user:password@postgres:5432/app?sslmode=disable
-      - REDIS_ADDR=redis:6379
-      - JWT_SECRET_FILE=/run/secrets/jwt_secret
-      - DEBUG=true
     depends_on:
       - postgres
       - redis

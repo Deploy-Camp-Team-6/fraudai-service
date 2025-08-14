@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"strings"
 	"time"
 
@@ -41,6 +42,17 @@ type Config struct {
 
 // LoadConfig reads configuration from file or environment variables.
 func LoadConfig() (config Config, err error) {
+	viper.SetConfigName("config")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath(".")
+
+	if err = viper.ReadInConfig(); err != nil {
+		var notFound viper.ConfigFileNotFoundError
+		if !errors.As(err, &notFound) {
+			return
+		}
+	}
+
 	viper.SetDefault("APP_ENV", "development")
 	viper.SetDefault("HTTP_ADDR", "0.0.0.0")
 	viper.SetDefault("HTTP_PORT", 8080)
@@ -54,6 +66,10 @@ func LoadConfig() (config Config, err error) {
 
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+	for _, key := range []string{"PG_DSN", "REDIS_PASSWORD", "VENDOR_TOKEN", "JWT_SECRET_FILE"} {
+		_ = viper.BindEnv(key)
+	}
 
 	err = viper.Unmarshal(&config)
 	return
