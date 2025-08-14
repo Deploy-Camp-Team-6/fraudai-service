@@ -52,6 +52,30 @@ type Model struct {
 	SignatureInputs []string `json:"signature_inputs"`
 }
 
+// PredictRequest represents the payload sent to the vendor's predict endpoint.
+type PredictRequest struct {
+	Model    string                 `json:"model"`
+	Features map[string]interface{} `json:"features"`
+}
+
+// PredictResponse mirrors the full response returned by the vendor's predict endpoint.
+type PredictResponse struct {
+	Meta struct {
+		ModelName    string  `json:"model_name"`
+		ModelVersion string  `json:"model_version"`
+		ModelStage   string  `json:"model_stage"`
+		RunID        string  `json:"run_id"`
+		RequestID    string  `json:"request_id"`
+		Timestamp    string  `json:"timestamp"`
+		LatencyMs    float64 `json:"latency_ms"`
+	} `json:"meta"`
+	Result struct {
+		Prediction int     `json:"prediction"`
+		Score      float64 `json:"score"`
+		Threshold  float64 `json:"threshold"`
+	} `json:"result"`
+}
+
 func NewThirdPartyClient(baseURL, token string, logger zerolog.Logger) *ThirdPartyClient {
 	client := resty.New().
 		SetBaseURL(baseURL).
@@ -147,4 +171,39 @@ func (c *ThirdPartyClient) Version(ctx context.Context) (*VersionResponse, error
 		return nil, err
 	}
 	return body.(*VersionResponse), nil
+}
+
+// Predict sends a prediction request to the vendor API.
+func (c *ThirdPartyClient) Predict(ctx context.Context, req PredictRequest) (*PredictResponse, error) {
+	ctx, span := tracer.Start(ctx, "ThirdPartyClient.Predict")
+	defer span.End()
+
+	body, err := c.cb.Execute(func() (interface{}, error) {
+		vendorRequestsTotal.Inc()
+		result := &PredictResponse{}
+		resp, err := c.client.R().
+			SetContext(ctx).
+			SetBody(req).
+			SetResult(result).
+			Post("/v1/predict")
+		if err != nil {
+			vendorErrorsTotal.Inc()
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+			return nil, err
+		}
+		if resp.StatusCode() != http.StatusOK {
+			err := errors.New("vendor API returned non-200 status")
+			vendorErrorsTotal.Inc()
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+			return nil, err
+		}
+		span.SetAttributes(attribute.Int("http.status_code", resp.StatusCode()))
+		return result, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return body.(*PredictResponse), nil
 }

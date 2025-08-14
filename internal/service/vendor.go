@@ -5,20 +5,24 @@ import (
 	"sort"
 
 	"github.com/jules-labs/go-api-prod-template/internal/clients"
+	"github.com/rs/zerolog"
 )
 
 type VendorService interface {
 	Ping(ctx context.Context) (string, error)
 	ListModels(ctx context.Context) ([]Model, error)
+	Predict(ctx context.Context, req PredictRequest) (PredictResponse, error)
 }
 
 type vendorService struct {
 	client *clients.ThirdPartyClient
+	logger zerolog.Logger
 }
 
-func NewVendorService(client *clients.ThirdPartyClient) VendorService {
+func NewVendorService(client *clients.ThirdPartyClient, logger zerolog.Logger) VendorService {
 	return &vendorService{
 		client: client,
+		logger: logger,
 	}
 }
 
@@ -34,6 +38,28 @@ type Model struct {
 	Stage           string   `json:"stage"`
 	RunID           string   `json:"run_id"`
 	SignatureInputs []string `json:"signature_inputs"`
+}
+
+// PredictRequest contains the input for a prediction.
+type PredictRequest struct {
+	Model    string                 `json:"model" validate:"required"`
+	Features map[string]interface{} `json:"features" validate:"required"`
+}
+
+// PredictResponse is the subset of the vendor response we expose to clients.
+type PredictResponse struct {
+	Meta struct {
+		ModelName string  `json:"model_name"`
+		RunID     string  `json:"run_id"`
+		RequestID string  `json:"request_id"`
+		Timestamp string  `json:"timestamp"`
+		LatencyMs float64 `json:"latency_ms"`
+	} `json:"meta"`
+	Result struct {
+		Prediction int     `json:"prediction"`
+		Score      float64 `json:"score"`
+		Threshold  float64 `json:"threshold"`
+	} `json:"result"`
 }
 
 func (s *vendorService) ListModels(ctx context.Context) ([]Model, error) {
@@ -59,4 +85,38 @@ func (s *vendorService) ListModels(ctx context.Context) ([]Model, error) {
 	})
 
 	return models, nil
+}
+
+// Predict calls the vendor predict endpoint and maps the response.
+func (s *vendorService) Predict(ctx context.Context, req PredictRequest) (PredictResponse, error) {
+	s.logger.Info().Str("model", req.Model).Msg("predict request")
+
+	vendorReq := clients.PredictRequest{
+		Model:    req.Model,
+		Features: req.Features,
+	}
+
+	vendorResp, err := s.client.Predict(ctx, vendorReq)
+	if err != nil {
+		s.logger.Error().Err(err).Msg("predict request failed")
+		return PredictResponse{}, err
+	}
+
+	var resp PredictResponse
+	resp.Meta.ModelName = vendorResp.Meta.ModelName
+	resp.Meta.RunID = vendorResp.Meta.RunID
+	resp.Meta.RequestID = vendorResp.Meta.RequestID
+	resp.Meta.Timestamp = vendorResp.Meta.Timestamp
+	resp.Meta.LatencyMs = vendorResp.Meta.LatencyMs
+	resp.Result.Prediction = vendorResp.Result.Prediction
+	resp.Result.Score = vendorResp.Result.Score
+	resp.Result.Threshold = vendorResp.Result.Threshold
+
+	s.logger.Info().
+		Str("model", resp.Meta.ModelName).
+		Int("prediction", resp.Result.Prediction).
+		Float64("score", resp.Result.Score).
+		Msg("predict response")
+
+	return resp, nil
 }

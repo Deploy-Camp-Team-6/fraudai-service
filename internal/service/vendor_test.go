@@ -27,11 +27,46 @@ func TestVendorService_ListModels(t *testing.T) {
 	defer server.Close()
 
 	client := clients.NewThirdPartyClient(server.URL, "", zerolog.Nop())
-	svc := NewVendorService(client)
+	svc := NewVendorService(client, zerolog.Nop())
 
 	models, err := svc.ListModels(context.Background())
 	require.NoError(t, err)
 	assert.Len(t, models, 3)
 	assert.Equal(t, "lightgbm", models[0].ModelType)
 	assert.Equal(t, "FraudDetector-lightgbm", models[0].Name)
+}
+
+func TestVendorService_Predict(t *testing.T) {
+	vendorResp := `{"meta":{"model_name":"FraudDetector-logistic_regression","model_version":"1","model_stage":"None","run_id":"121e6c15715c420b8f0b9139d75fd30d","request_id":"98e4d927-e302-4111-b33a-faa54baf6196","timestamp":"2025-08-14T17:14:34.104800Z","latency_ms":7.089370861649513},"result":{"prediction":1,"score":1.0,"threshold":0.5}}`
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/v1/predict" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(vendorResp))
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	client := clients.NewThirdPartyClient(server.URL, "", zerolog.Nop())
+	svc := NewVendorService(client, zerolog.Nop())
+
+	req := PredictRequest{
+		Model: "logreg",
+		Features: map[string]interface{}{
+			"transaction_id": 9876543210,
+			"amount":         200.0,
+			"device_type":    "laptop",
+			"merchant_type":  "electronics",
+		},
+	}
+
+	resp, err := svc.Predict(context.Background(), req)
+	require.NoError(t, err)
+	assert.Equal(t, "FraudDetector-logistic_regression", resp.Meta.ModelName)
+	assert.Equal(t, 1, resp.Result.Prediction)
+	assert.Equal(t, 0.5, resp.Result.Threshold)
+	assert.Equal(t, "121e6c15715c420b8f0b9139d75fd30d", resp.Meta.RunID)
 }

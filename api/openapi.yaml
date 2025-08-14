@@ -88,6 +88,25 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/Model'
+  /inference/predict:
+    post:
+      summary: Get fraud prediction
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PredictRequest'
+      responses:
+        '200':
+          description: Prediction result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PredictResponse'
   /auth/sign-up:
     post:
       summary: Register a new account
@@ -222,6 +241,46 @@ components:
           $ref: '#/components/schemas/User'
         token:
           type: string
+    PredictRequest:
+      type: object
+      properties:
+        model:
+          type: string
+        features:
+          type: object
+          additionalProperties: {}
+      required:
+        - model
+        - features
+    PredictResponse:
+      type: object
+      properties:
+        meta:
+          type: object
+          properties:
+            model_name:
+              type: string
+            run_id:
+              type: string
+            request_id:
+              type: string
+            timestamp:
+              type: string
+              format: date-time
+            latency_ms:
+              type: number
+        result:
+          type: object
+          properties:
+            prediction:
+              type: integer
+            score:
+              type: number
+            threshold:
+              type: number
+      required:
+        - meta
+        - result
     Model:
       type: object
       properties:

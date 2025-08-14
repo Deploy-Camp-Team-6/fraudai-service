@@ -58,7 +58,7 @@ func main() {
 	profileSvc := service.NewProfileService(userRepo)
 	apiKeySvc := service.NewAPIKeyService(apiKeyRepo)
 	vendorClient := clients.NewThirdPartyClient(cfg.VendorBaseURL, cfg.VendorToken, logger)
-	vendorSvc := service.NewVendorService(vendorClient)
+	vendorSvc := service.NewVendorService(vendorClient, logger)
 	authSvc := service.NewAuthService(userRepo, jwtSecret, 24*time.Hour)
 
 	// Setup router

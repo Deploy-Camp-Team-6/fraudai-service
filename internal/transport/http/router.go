@@ -88,6 +88,7 @@ func NewRouter(
 		v1.Route("/inference", func(r chi.Router) {
 			r.Use(vendorAuth)
 			r.Get("/models", ListModelsHandler(vendorSvc))
+			r.Post("/predict", PredictHandler(vendorSvc))
 		})
 	})
 
