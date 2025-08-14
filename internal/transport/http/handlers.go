@@ -193,3 +193,14 @@ func VendorPingHandler(vendorSvc service.VendorService) http.HandlerFunc {
 		response.RespondWithJSON(w, http.StatusOK, map[string]string{"message": pong})
 	}
 }
+
+func ListModelsHandler(vendorSvc service.VendorService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		models, err := vendorSvc.ListModels(r.Context())
+		if err != nil {
+			response.RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		response.RespondWithJSON(w, http.StatusOK, map[string]interface{}{"models": models})
+	}
+}
