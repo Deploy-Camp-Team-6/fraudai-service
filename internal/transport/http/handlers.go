@@ -72,7 +72,7 @@ type apiKeyResponse struct {
 	Key        string     `json:"key"`
 	Active     bool       `json:"active"`
 	RateRPM    int32      `json:"rate_rpm"`
-	LastUsedAt *time.Time `json:"last_used_at,omitempty"`
+	LastUsedAt *time.Time `json:"last_used_at"`
 	CreatedAt  time.Time  `json:"created_at"`
 }
 
