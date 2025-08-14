@@ -34,6 +34,24 @@ type ThirdPartyClient struct {
 	cb     *gobreaker.CircuitBreaker
 }
 
+// VersionResponse represents the payload returned by the vendor's
+// `/v1/version` endpoint.
+type VersionResponse struct {
+	BuildTime         string           `json:"build_time"`
+	GitSHA            string           `json:"git_sha"`
+	MlflowTrackingURI string           `json:"mlflow_tracking_uri"`
+	LoadedModels      map[string]Model `json:"loaded_models"`
+}
+
+// Model describes a single model entry from the vendor.
+type Model struct {
+	Name            string   `json:"name"`
+	Version         string   `json:"version"`
+	Stage           string   `json:"stage"`
+	RunID           string   `json:"run_id"`
+	SignatureInputs []string `json:"signature_inputs"`
+}
+
 func NewThirdPartyClient(baseURL, token string, logger zerolog.Logger) *ThirdPartyClient {
 	client := resty.New().
 		SetBaseURL(baseURL).
@@ -95,4 +113,38 @@ func (c *ThirdPartyClient) Ping(ctx context.Context) (string, error) {
 		return "", err
 	}
 	return body.(string), nil
+}
+
+// Version fetches metadata about the vendor service including loaded models.
+func (c *ThirdPartyClient) Version(ctx context.Context) (*VersionResponse, error) {
+	ctx, span := tracer.Start(ctx, "ThirdPartyClient.Version")
+	defer span.End()
+
+	body, err := c.cb.Execute(func() (interface{}, error) {
+		vendorRequestsTotal.Inc()
+		result := &VersionResponse{}
+		resp, err := c.client.R().
+			SetContext(ctx).
+			SetResult(result).
+			Get("/v1/version")
+		if err != nil {
+			vendorErrorsTotal.Inc()
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+			return nil, err
+		}
+		if resp.StatusCode() != http.StatusOK {
+			err := errors.New("vendor API returned non-200 status")
+			vendorErrorsTotal.Inc()
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+			return nil, err
+		}
+		span.SetAttributes(attribute.Int("http.status_code", resp.StatusCode()))
+		return result, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return body.(*VersionResponse), nil
 }

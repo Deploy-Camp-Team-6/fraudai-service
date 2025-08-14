@@ -74,6 +74,21 @@ func NewRouter(
 			r.Post("/", APIKeyHandler(apiKeySvc))
 			r.Delete("/{id}", DeleteAPIKeyHandler(apiKeySvc))
 		})
+
+		vendorAuth := app_middleware.AuthEither(
+			app_middleware.APIKeyAuth(apiKeyRepo, userRepo),
+			jwtAuth,
+		)
+
+		v1.Route("/vendor", func(r chi.Router) {
+			r.Use(vendorAuth)
+			r.Get("/ping", VendorPingHandler(vendorSvc))
+		})
+
+		v1.Route("/inference", func(r chi.Router) {
+			r.Use(vendorAuth)
+			r.Get("/models", ListModelsHandler(vendorSvc))
+		})
 	})
 
 	return r
