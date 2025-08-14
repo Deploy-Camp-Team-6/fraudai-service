@@ -113,3 +113,6 @@ Run all tests:
 make test
 ```
 This will run both unit and integration tests. Integration tests require Docker to be running.
+
+
+export PG_DSN="postgres://myuser:mypassword@localhost:5432/mydatabase?sslmode=disable"

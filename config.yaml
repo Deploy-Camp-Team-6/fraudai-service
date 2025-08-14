@@ -6,10 +6,10 @@ pg_max_open_conns: 25
 pg_max_idle_conns: 25
 pg_conn_max_lifetime: 5m
 
-redis_addr: redis:6379
+redis_addr: localhost:6379
 redis_db: 0
 
-jwt_secret_file: /run/secrets/jwt_secret
+jwt_secret_file: ./jwt.secret
 
 rate_limit_rpm_default: 100
 

@@ -17,6 +17,7 @@ CREATE TABLE api_keys (
   label       TEXT,
   active      BOOLEAN NOT NULL DEFAULT true,
   rate_rpm    INT NOT NULL DEFAULT 100,
+  last_used_at TIMESTAMPTZ,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
