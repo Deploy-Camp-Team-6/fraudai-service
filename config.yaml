@@ -1,0 +1,23 @@
+app_env: development
+http_addr: 0.0.0.0
+http_port: 8080
+
+pg_max_open_conns: 25
+pg_max_idle_conns: 25
+pg_conn_max_lifetime: 5m
+
+redis_addr: redis:6379
+redis_db: 0
+
+jwt_secret_file: /run/secrets/jwt_secret
+
+rate_limit_rpm_default: 100
+
+otel_exporter_otlp_endpoint: ""
+otel_service_name: go-api
+
+cors_allowed_origins:
+  - "*"
+
+vendor_base_url: ""
+debug: true

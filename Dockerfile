@@ -24,6 +24,7 @@ WORKDIR /root/
 COPY --from=builder /app/server .
 COPY --from=builder /app/migrations ./migrations
 COPY --from=builder /app/api/openapi.yaml ./api/openapi.yaml
+COPY --from=builder /app/config.yaml ./config.yaml
 
 EXPOSE 8080
 
