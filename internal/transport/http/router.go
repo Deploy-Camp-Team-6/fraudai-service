@@ -7,7 +7,6 @@ import (
 
 	chi "github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	redis_rate "github.com/go-redis/redis_rate/v10"
 	"github.com/jules-labs/go-api-prod-template/internal/config"
 	"github.com/jules-labs/go-api-prod-template/internal/repo"
 	"github.com/jules-labs/go-api-prod-template/internal/service"
@@ -57,10 +56,6 @@ func NewRouter(
 
 	// API v1
 	r.Route("/v1", func(v1 chi.Router) {
-		// Rate limiting middleware
-		limiter := redis_rate.NewLimiter(redisClient)
-		v1.Use(app_middleware.PlanAwareRateLimiter(limiter, cfg.RateLimitRPMDefault))
-
 		// Auth
 		jwtAuth := app_middleware.JWTAuth(cfg.JWTSecretFile, userRepo)
 		v1.Route("/auth", func(auth chi.Router) {
