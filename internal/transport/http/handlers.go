@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	chi "github.com/go-chi/chi/v5"
@@ -74,6 +75,20 @@ type apiKeyResponse struct {
 	RateRPM    int32      `json:"rate_rpm"`
 	LastUsedAt *time.Time `json:"last_used_at"`
 	CreatedAt  time.Time  `json:"created_at"`
+}
+
+func maskAPIKey(key string) string {
+	const (
+		prefixLen = 10
+		suffixLen = 6
+	)
+
+	if len(key) <= prefixLen+suffixLen {
+		return key
+	}
+
+	maskedLen := len(key) - prefixLen - suffixLen
+	return key[:prefixLen] + strings.Repeat("*", maskedLen) + key[len(key)-suffixLen:]
 }
 
 func APIKeyHandler(apiKeySvc service.APIKeyService) http.HandlerFunc {
@@ -144,10 +159,11 @@ func ListAPIKeysHandler(apiKeySvc service.APIKeyService) http.HandlerFunc {
 				lastUsed = &t
 			}
 
+			keyStr := hex.EncodeToString(k.KeyHash)
 			resp[i] = apiKeyResponse{
 				ID:         k.ID,
 				Label:      label,
-				Key:        hex.EncodeToString(k.KeyHash),
+				Key:        maskAPIKey(keyStr),
 				Active:     k.Active,
 				RateRPM:    k.RateRpm,
 				LastUsedAt: lastUsed,
