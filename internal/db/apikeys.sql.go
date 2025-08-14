@@ -52,6 +52,20 @@ func (q *Queries) CreateAPIKey(ctx context.Context, arg CreateAPIKeyParams) (Cre
 	return i, err
 }
 
+const deleteAPIKey = `-- name: DeleteAPIKey :exec
+UPDATE api_keys SET active = FALSE WHERE user_id = $1 AND id = $2
+`
+
+type DeleteAPIKeyParams struct {
+	UserID int64 `json:"user_id"`
+	ID     int64 `json:"id"`
+}
+
+func (q *Queries) DeleteAPIKey(ctx context.Context, arg DeleteAPIKeyParams) error {
+	_, err := q.db.ExecContext(ctx, deleteAPIKey, arg.UserID, arg.ID)
+	return err
+}
+
 const getAPIKeyByHash = `-- name: GetAPIKeyByHash :one
 SELECT id, user_id, key_hash, active, rate_rpm FROM api_keys WHERE key_hash = $1
 `
@@ -75,4 +89,45 @@ func (q *Queries) GetAPIKeyByHash(ctx context.Context, keyHash []byte) (GetAPIKe
 		&i.RateRpm,
 	)
 	return i, err
+}
+
+const listAPIKeysByUser = `-- name: ListAPIKeysByUser :many
+SELECT id, label, active, rate_rpm, created_at FROM api_keys WHERE user_id = $1
+`
+
+type ListAPIKeysByUserRow struct {
+	ID        int64          `json:"id"`
+	Label     sql.NullString `json:"label"`
+	Active    bool           `json:"active"`
+	RateRpm   int32          `json:"rate_rpm"`
+	CreatedAt time.Time      `json:"created_at"`
+}
+
+func (q *Queries) ListAPIKeysByUser(ctx context.Context, userID int64) ([]ListAPIKeysByUserRow, error) {
+	rows, err := q.db.QueryContext(ctx, listAPIKeysByUser, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListAPIKeysByUserRow{}
+	for rows.Next() {
+		var i ListAPIKeysByUserRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Label,
+			&i.Active,
+			&i.RateRpm,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

@@ -10,13 +10,14 @@ import (
 )
 
 type ApiKey struct {
-	ID        int64          `json:"id"`
-	UserID    int64          `json:"user_id"`
-	KeyHash   []byte         `json:"key_hash"`
-	Label     sql.NullString `json:"label"`
-	Active    bool           `json:"active"`
-	RateRpm   int32          `json:"rate_rpm"`
-	CreatedAt time.Time      `json:"created_at"`
+	ID         int64          `json:"id"`
+	UserID     int64          `json:"user_id"`
+	KeyHash    []byte         `json:"key_hash"`
+	Label      sql.NullString `json:"label"`
+	Active     bool           `json:"active"`
+	RateRpm    int32          `json:"rate_rpm"`
+	LastUsedAt sql.NullTime   `json:"last_used_at"`
+	CreatedAt  time.Time      `json:"created_at"`
 }
 
 type User struct {

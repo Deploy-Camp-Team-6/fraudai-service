@@ -4,7 +4,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
+	"strconv"
 
+	chi "github.com/go-chi/chi/v5"
 	validator "github.com/go-playground/validator/v10"
 	"github.com/jules-labs/go-api-prod-template/internal/service"
 	app_middleware "github.com/jules-labs/go-api-prod-template/internal/transport/http/middleware"
@@ -95,6 +97,48 @@ func APIKeyHandler(apiKeySvc service.APIKeyService) http.HandlerFunc {
 			"key":     plaintextKey,
 			"details": createdKey,
 		})
+	}
+}
+
+func ListAPIKeysHandler(apiKeySvc service.APIKeyService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		identity, ok := app_middleware.IdentityFrom(r.Context())
+		if !ok {
+			response.RespondWithError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+
+		keys, err := apiKeySvc.ListAPIKeys(r.Context(), identity.UserID)
+		if err != nil {
+			response.RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		response.RespondWithJSON(w, http.StatusOK, keys)
+	}
+}
+
+func DeleteAPIKeyHandler(apiKeySvc service.APIKeyService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		identity, ok := app_middleware.IdentityFrom(r.Context())
+		if !ok {
+			response.RespondWithError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+
+		idParam := chi.URLParam(r, "id")
+		keyID, err := strconv.ParseInt(idParam, 10, 64)
+		if err != nil {
+			response.RespondWithError(w, http.StatusBadRequest, "invalid key id")
+			return
+		}
+
+		if err := apiKeySvc.DeleteAPIKey(r.Context(), identity.UserID, keyID); err != nil {
+			response.RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
 

@@ -74,8 +74,14 @@ func NewRouter(
 			protected.Use(app_middleware.AuthEither(apiKeyAuth, jwtAuth))
 
 			protected.Get("/profile", ProfileHandler(profileSvc))
-			protected.Post("/apikeys", APIKeyHandler(apiKeySvc))
 			protected.Get("/vendor/ping", VendorPingHandler(vendorSvc))
+		})
+
+		v1.Route("/apikeys", func(r chi.Router) {
+			r.Use(jwtAuth)
+			r.Get("/", ListAPIKeysHandler(apiKeySvc))
+			r.Post("/", APIKeyHandler(apiKeySvc))
+			r.Delete("/{id}", DeleteAPIKeyHandler(apiKeySvc))
 		})
 	})
 

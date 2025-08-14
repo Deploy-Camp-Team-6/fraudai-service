@@ -13,6 +13,8 @@ import (
 
 type APIKeyService interface {
 	CreateAPIKey(ctx context.Context, userID int64, label string, rateRPM int) (string, db.CreateAPIKeyRow, error)
+	ListAPIKeys(ctx context.Context, userID int64) ([]db.ListAPIKeysByUserRow, error)
+	DeleteAPIKey(ctx context.Context, userID, keyID int64) error
 }
 
 type apiKeyService struct {
@@ -46,6 +48,14 @@ func (s *apiKeyService) CreateAPIKey(ctx context.Context, userID int64, label st
 	}
 
 	return plaintextKey, createdKey, nil
+}
+
+func (s *apiKeyService) ListAPIKeys(ctx context.Context, userID int64) ([]db.ListAPIKeysByUserRow, error) {
+	return s.apiKeyRepo.ListAPIKeysByUser(ctx, userID)
+}
+
+func (s *apiKeyService) DeleteAPIKey(ctx context.Context, userID, keyID int64) error {
+	return s.apiKeyRepo.DeleteAPIKey(ctx, userID, keyID)
 }
 
 func generateRandomKey(length int) (string, error) {
