@@ -20,10 +20,11 @@ type ApiKey struct {
 }
 
 type User struct {
-	ID           int64          `json:"id"`
-	Email        string         `json:"email"`
-	PasswordHash sql.NullString `json:"password_hash"`
-	Plan         string         `json:"plan"`
-	CreatedAt    time.Time      `json:"created_at"`
-	UpdatedAt    time.Time      `json:"updated_at"`
+	ID           int64     `json:"id"`
+	Email        string    `json:"email"`
+	PasswordHash string    `json:"password_hash"`
+	Plan         string    `json:"plan"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+	Name         string    `json:"name"`
 }

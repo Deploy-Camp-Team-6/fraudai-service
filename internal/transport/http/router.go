@@ -26,6 +26,7 @@ func NewRouter(
 	profileSvc service.ProfileService,
 	apiKeySvc service.APIKeyService,
 	vendorSvc service.VendorService,
+	authSvc service.AuthService,
 	logger zerolog.Logger,
 ) http.Handler {
 	r := chi.NewRouter()
@@ -54,21 +55,33 @@ func NewRouter(
 		http.ServeFile(w, r, "api/openapi.yaml")
 	})
 
-	// Protected API
-	r.Route("/v1", func(v chi.Router) {
-		// Auth middleware
-		apiKeyAuth := app_middleware.APIKeyAuth(apiKeyRepo, userRepo)
+	// API v1
+	r.Route("/v1", func(v1 chi.Router) {
+		// Auth
 		jwtAuth := app_middleware.JWTAuth(cfg.JWTSecretFile, userRepo)
-		v.Use(app_middleware.AuthEither(apiKeyAuth, jwtAuth))
+		v1.Route("/auth", func(auth chi.Router) {
+			auth.Post("/sign-up", SignUpHandler(authSvc))
+			auth.Post("/sign-in", SignInHandler(authSvc))
+
+			auth.Group(func(g chi.Router) {
+				g.Use(jwtAuth)
+				g.Get("/me", MeHandler(profileSvc))
+			})
+		})
 
 		// Rate limiting middleware
 		limiter := redis_rate.NewLimiter(redisClient)
-		v.Use(app_middleware.PlanAwareRateLimiter(limiter, cfg.RateLimitRPMDefault))
+		v1.Use(app_middleware.PlanAwareRateLimiter(limiter, cfg.RateLimitRPMDefault))
 
-		// Handlers
-		v.Get("/profile", ProfileHandler(profileSvc))
-		v.Post("/apikeys", APIKeyHandler(apiKeySvc))
-		v.Get("/vendor/ping", VendorPingHandler(vendorSvc))
+		// Protected API
+		v1.Group(func(protected chi.Router) {
+			apiKeyAuth := app_middleware.APIKeyAuth(apiKeyRepo, userRepo)
+			protected.Use(app_middleware.AuthEither(apiKeyAuth, jwtAuth))
+
+			protected.Get("/profile", ProfileHandler(profileSvc))
+			protected.Post("/apikeys", APIKeyHandler(apiKeySvc))
+			protected.Get("/vendor/ping", VendorPingHandler(vendorSvc))
+		})
 	})
 
 	return r

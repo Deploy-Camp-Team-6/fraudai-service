@@ -11,17 +11,20 @@ import (
 )
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (email, plan) VALUES ($1, $2)
-RETURNING id, email, plan, created_at, updated_at
+INSERT INTO users (name, email, password_hash, plan) VALUES ($1, $2, $3, $4)
+RETURNING id, name, email, plan, created_at, updated_at
 `
 
 type CreateUserParams struct {
-	Email string `json:"email"`
-	Plan  string `json:"plan"`
+	Name         string `json:"name"`
+	Email        string `json:"email"`
+	PasswordHash string `json:"password_hash"`
+	Plan         string `json:"plan"`
 }
 
 type CreateUserRow struct {
 	ID        int64     `json:"id"`
+	Name      string    `json:"name"`
 	Email     string    `json:"email"`
 	Plan      string    `json:"plan"`
 	CreatedAt time.Time `json:"created_at"`
@@ -29,11 +32,77 @@ type CreateUserRow struct {
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error) {
-	row := q.db.QueryRowContext(ctx, createUser, arg.Email, arg.Plan)
+	row := q.db.QueryRowContext(ctx, createUser,
+		arg.Name,
+		arg.Email,
+		arg.PasswordHash,
+		arg.Plan,
+	)
 	var i CreateUserRow
 	err := row.Scan(
 		&i.ID,
+		&i.Name,
 		&i.Email,
+		&i.Plan,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getUserByEmail = `-- name: GetUserByEmail :one
+SELECT id, name, email, plan, created_at, updated_at
+FROM users
+WHERE email = $1
+`
+
+type GetUserByEmailRow struct {
+	ID        int64     `json:"id"`
+	Name      string    `json:"name"`
+	Email     string    `json:"email"`
+	Plan      string    `json:"plan"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
+	var i GetUserByEmailRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Email,
+		&i.Plan,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getUserByEmailForLogin = `-- name: GetUserByEmailForLogin :one
+SELECT id, name, email, password_hash, plan, created_at, updated_at
+FROM users
+WHERE email = $1
+`
+
+type GetUserByEmailForLoginRow struct {
+	ID           int64     `json:"id"`
+	Name         string    `json:"name"`
+	Email        string    `json:"email"`
+	PasswordHash string    `json:"password_hash"`
+	Plan         string    `json:"plan"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}
+
+func (q *Queries) GetUserByEmailForLogin(ctx context.Context, email string) (GetUserByEmailForLoginRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserByEmailForLogin, email)
+	var i GetUserByEmailForLoginRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Email,
+		&i.PasswordHash,
 		&i.Plan,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -43,13 +112,14 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateU
 
 const getUserByID = `-- name: GetUserByID :one
 
-SELECT id, email, plan, created_at, updated_at
+SELECT id, name, email, plan, created_at, updated_at
 FROM users
 WHERE id = $1
 `
 
 type GetUserByIDRow struct {
 	ID        int64     `json:"id"`
+	Name      string    `json:"name"`
 	Email     string    `json:"email"`
 	Plan      string    `json:"plan"`
 	CreatedAt time.Time `json:"created_at"`
@@ -62,6 +132,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id int64) (GetUserByIDRow, er
 	var i GetUserByIDRow
 	err := row.Scan(
 		&i.ID,
+		&i.Name,
 		&i.Email,
 		&i.Plan,
 		&i.CreatedAt,
