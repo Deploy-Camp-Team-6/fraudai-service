@@ -10,6 +10,8 @@ type UserRepository interface {
 	CreateUser(ctx context.Context, arg db.CreateUserParams) (db.CreateUserRow, error)
 	ListUsersPaged(ctx context.Context, arg db.ListUsersPagedParams) ([]db.ListUsersPagedRow, error)
 	GetUserByID(ctx context.Context, id int64) (db.GetUserByIDRow, error)
+	GetUserByEmail(ctx context.Context, email string) (db.GetUserByEmailRow, error)
+	GetUserByEmailForLogin(ctx context.Context, email string) (db.GetUserByEmailForLoginRow, error)
 }
 
 type postgresUserRepository struct {
@@ -32,4 +34,12 @@ func (r *postgresUserRepository) ListUsersPaged(ctx context.Context, arg db.List
 
 func (r *postgresUserRepository) GetUserByID(ctx context.Context, id int64) (db.GetUserByIDRow, error) {
 	return r.q.GetUserByID(ctx, id)
+}
+
+func (r *postgresUserRepository) GetUserByEmail(ctx context.Context, email string) (db.GetUserByEmailRow, error) {
+	return r.q.GetUserByEmail(ctx, email)
+}
+
+func (r *postgresUserRepository) GetUserByEmailForLogin(ctx context.Context, email string) (db.GetUserByEmailForLoginRow, error) {
+	return r.q.GetUserByEmailForLogin(ctx, email)
 }
