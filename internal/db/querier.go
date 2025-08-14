@@ -11,11 +11,13 @@ import (
 type Querier interface {
 	CreateAPIKey(ctx context.Context, arg CreateAPIKeyParams) (CreateAPIKeyRow, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error)
+	DeleteAPIKey(ctx context.Context, arg DeleteAPIKeyParams) error
 	GetAPIKeyByHash(ctx context.Context, keyHash []byte) (GetAPIKeyByHashRow, error)
 	GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error)
 	GetUserByEmailForLogin(ctx context.Context, email string) (GetUserByEmailForLoginRow, error)
 	// keyset pagination
 	GetUserByID(ctx context.Context, id int64) (GetUserByIDRow, error)
+	ListAPIKeysByUser(ctx context.Context, userID int64) ([]ListAPIKeysByUserRow, error)
 	ListUsersPaged(ctx context.Context, arg ListUsersPagedParams) ([]ListUsersPagedRow, error)
 }
 
