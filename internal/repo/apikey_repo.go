@@ -3,6 +3,10 @@ package repo
 import (
 	"context"
 	"crypto/sha256"
+	"errors"
+
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/jules-labs/go-api-prod-template/internal/db"
 )
@@ -29,7 +33,15 @@ func (r *postgresAPIKeyRepository) GetAPIKeyByHash(ctx context.Context, keyHash 
 }
 
 func (r *postgresAPIKeyRepository) CreateAPIKey(ctx context.Context, arg db.CreateAPIKeyParams) (db.CreateAPIKeyRow, error) {
-	return r.q.CreateAPIKey(ctx, arg)
+	createdKey, err := r.q.CreateAPIKey(ctx, arg)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
+			return db.CreateAPIKeyRow{}, ErrAPIKeyLabelExists
+		}
+		return db.CreateAPIKeyRow{}, err
+	}
+	return createdKey, nil
 }
 
 func (r *postgresAPIKeyRepository) ListAPIKeysByUser(ctx context.Context, userID int64) ([]db.ListAPIKeysByUserRow, error) {
