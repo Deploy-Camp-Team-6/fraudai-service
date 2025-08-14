@@ -57,6 +57,10 @@ func NewRouter(
 
 	// API v1
 	r.Route("/v1", func(v1 chi.Router) {
+		// Rate limiting middleware
+		limiter := redis_rate.NewLimiter(redisClient)
+		v1.Use(app_middleware.PlanAwareRateLimiter(limiter, cfg.RateLimitRPMDefault))
+
 		// Auth
 		jwtAuth := app_middleware.JWTAuth(cfg.JWTSecretFile, userRepo)
 		v1.Route("/auth", func(auth chi.Router) {
@@ -68,10 +72,6 @@ func NewRouter(
 				g.Get("/me", MeHandler(profileSvc))
 			})
 		})
-
-		// Rate limiting middleware
-		limiter := redis_rate.NewLimiter(redisClient)
-		v1.Use(app_middleware.PlanAwareRateLimiter(limiter, cfg.RateLimitRPMDefault))
 
 		// Protected API
 		v1.Group(func(protected chi.Router) {
