@@ -3,6 +3,7 @@ package http
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -89,6 +90,10 @@ func APIKeyHandler(apiKeySvc service.APIKeyService) http.HandlerFunc {
 
 		plaintextKey, createdKey, err := apiKeySvc.CreateAPIKey(r.Context(), identity.UserID, req.Label, rateRPM)
 		if err != nil {
+			if errors.Is(err, service.ErrAPIKeyLabelExists) {
+				response.RespondWithError(w, http.StatusConflict, "label already exists")
+				return
+			}
 			response.RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}

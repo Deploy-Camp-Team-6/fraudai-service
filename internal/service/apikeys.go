@@ -4,12 +4,15 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 
 	"database/sql"
 
 	"github.com/jules-labs/go-api-prod-template/internal/db"
 	"github.com/jules-labs/go-api-prod-template/internal/repo"
 )
+
+var ErrAPIKeyLabelExists = errors.New("api key label already exists")
 
 type APIKeyService interface {
 	CreateAPIKey(ctx context.Context, userID int64, label string, rateRPM int) (string, db.CreateAPIKeyRow, error)
@@ -44,6 +47,9 @@ func (s *apiKeyService) CreateAPIKey(ctx context.Context, userID int64, label st
 
 	createdKey, err := s.apiKeyRepo.CreateAPIKey(ctx, params)
 	if err != nil {
+		if errors.Is(err, repo.ErrAPIKeyLabelExists) {
+			return "", db.CreateAPIKeyRow{}, ErrAPIKeyLabelExists
+		}
 		return "", db.CreateAPIKeyRow{}, err
 	}
 
