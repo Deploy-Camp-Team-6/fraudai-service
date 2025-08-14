@@ -216,3 +216,26 @@ func ListModelsHandler(vendorSvc service.VendorService) http.HandlerFunc {
 		response.RespondWithJSON(w, http.StatusOK, map[string]interface{}{"models": models})
 	}
 }
+
+func PredictHandler(vendorSvc service.VendorService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req service.PredictRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			response.RespondWithError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+
+		if err := validate.Struct(req); err != nil {
+			response.RespondWithError(w, http.StatusBadRequest, "validation failed: "+err.Error())
+			return
+		}
+
+		resp, err := vendorSvc.Predict(r.Context(), req)
+		if err != nil {
+			response.RespondWithError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+
+		response.RespondWithJSON(w, http.StatusOK, resp)
+	}
+}
