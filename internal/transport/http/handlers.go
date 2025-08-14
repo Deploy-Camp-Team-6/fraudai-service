@@ -185,6 +185,12 @@ func DeleteAPIKeyHandler(apiKeySvc service.APIKeyService) http.HandlerFunc {
 
 func VendorPingHandler(vendorSvc service.VendorService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		_, ok := app_middleware.IdentityFrom(r.Context())
+		if !ok {
+			response.RespondWithError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+
 		pong, err := vendorSvc.Ping(r.Context())
 		if err != nil {
 			response.RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -196,6 +202,12 @@ func VendorPingHandler(vendorSvc service.VendorService) http.HandlerFunc {
 
 func ListModelsHandler(vendorSvc service.VendorService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		_, ok := app_middleware.IdentityFrom(r.Context())
+		if !ok {
+			response.RespondWithError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+
 		models, err := vendorSvc.ListModels(r.Context())
 		if err != nil {
 			response.RespondWithError(w, http.StatusInternalServerError, err.Error())

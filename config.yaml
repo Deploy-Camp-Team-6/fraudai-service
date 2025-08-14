@@ -19,5 +19,5 @@ otel_service_name: go-api
 cors_allowed_origins:
   - "*"
 
-vendor_base_url: ""
+vendor_base_url: "https://inference.fraudai.cloud"
 debug: true

@@ -92,7 +92,7 @@ func (q *Queries) GetAPIKeyByHash(ctx context.Context, keyHash []byte) (GetAPIKe
 }
 
 const listAPIKeysByUser = `-- name: ListAPIKeysByUser :many
-SELECT id, label, key_hash, active, rate_rpm, last_used_at, created_at FROM api_keys WHERE user_id = $1
+SELECT id, label, key_hash, active, rate_rpm, last_used_at, created_at FROM api_keys WHERE user_id = $1 AND active = TRUE
 `
 
 type ListAPIKeysByUserRow struct {

@@ -1,6 +1,8 @@
 package middleware
 
-import "context"
+import (
+	"context"
+)
 
 // ctxKey is an unexported type for context keys defined in this package.
 // This prevents collisions with context keys defined in other packages.

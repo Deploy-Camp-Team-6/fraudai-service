@@ -92,7 +92,7 @@ func (c *ThirdPartyClient) Ping(ctx context.Context) (string, error) {
 
 	body, err := c.cb.Execute(func() (interface{}, error) {
 		vendorRequestsTotal.Inc()
-		resp, err := c.client.R().SetContext(ctx).Get("/ping")
+		resp, err := c.client.R().SetContext(ctx).Get("/readyz")
 		if err != nil {
 			vendorErrorsTotal.Inc()
 			span.RecordError(err)
