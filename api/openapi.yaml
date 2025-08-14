@@ -199,6 +199,7 @@ components:
           type: string
         key:
           type: string
+          description: Masked API key with first 10 and last 6 characters visible
         active:
           type: boolean
         rate_rpm:
