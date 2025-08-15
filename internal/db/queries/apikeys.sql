@@ -10,4 +10,4 @@ RETURNING id, user_id, label, active, rate_rpm, created_at;
 SELECT id, label, key_hash, active, rate_rpm, last_used_at, created_at FROM api_keys WHERE user_id = $1 AND active = TRUE;
 
 -- name: DeleteAPIKey :exec
-UPDATE api_keys SET active = FALSE WHERE user_id = $1 AND id = $2;
+DELETE FROM api_keys WHERE user_id = $1 AND id = $2;

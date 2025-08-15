@@ -53,7 +53,7 @@ func (q *Queries) CreateAPIKey(ctx context.Context, arg CreateAPIKeyParams) (Cre
 }
 
 const deleteAPIKey = `-- name: DeleteAPIKey :exec
-UPDATE api_keys SET active = FALSE WHERE user_id = $1 AND id = $2
+DELETE FROM api_keys WHERE user_id = $1 AND id = $2
 `
 
 type DeleteAPIKeyParams struct {
