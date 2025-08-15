@@ -22,6 +22,7 @@ func NewRouter(
 	redisClient *redis.Client,
 	userRepo repo.UserRepository,
 	apiKeyRepo repo.APIKeyRepository,
+	logRepo repo.InferenceLogRepository,
 	profileSvc service.ProfileService,
 	apiKeySvc service.APIKeyService,
 	vendorSvc service.VendorService,
@@ -88,7 +89,7 @@ func NewRouter(
 		v1.Route("/inference", func(r chi.Router) {
 			r.Use(vendorAuth)
 			r.Get("/models", ListModelsHandler(vendorSvc))
-			r.Post("/predict", PredictHandler(vendorSvc))
+			r.Post("/predict", PredictHandler(vendorSvc, logRepo))
 		})
 	})
 
