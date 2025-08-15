@@ -1,10 +1,12 @@
 package http
 
 import (
+	"context"
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -12,10 +14,14 @@ import (
 
 	chi "github.com/go-chi/chi/v5"
 	validator "github.com/go-playground/validator/v10"
+	"github.com/jules-labs/go-api-prod-template/internal/db"
+	"github.com/jules-labs/go-api-prod-template/internal/repo"
 	"github.com/jules-labs/go-api-prod-template/internal/service"
 	app_middleware "github.com/jules-labs/go-api-prod-template/internal/transport/http/middleware"
 	"github.com/jules-labs/go-api-prod-template/internal/transport/http/response"
 	redis "github.com/redis/go-redis/v9"
+	"github.com/rs/zerolog/log"
+	"github.com/sqlc-dev/pqtype"
 )
 
 var validate = validator.New()
@@ -89,6 +95,19 @@ func maskAPIKey(key string) string {
 
 	maskedLen := len(key) - prefixLen - suffixLen
 	return key[:prefixLen] + strings.Repeat("*", maskedLen) + key[len(key)-suffixLen:]
+}
+
+func maskSensitiveData(data map[string]interface{}) map[string]interface{} {
+	masked := make(map[string]interface{}, len(data))
+	for k, v := range data {
+		lower := strings.ToLower(k)
+		if strings.Contains(lower, "name") || strings.Contains(lower, "email") || strings.Contains(lower, "phone") || strings.Contains(lower, "password") {
+			masked[k] = "[REDACTED]"
+		} else {
+			masked[k] = v
+		}
+	}
+	return masked
 }
 
 func APIKeyHandler(apiKeySvc service.APIKeyService) http.HandlerFunc {
@@ -233,20 +252,86 @@ func ListModelsHandler(vendorSvc service.VendorService) http.HandlerFunc {
 	}
 }
 
-func PredictHandler(vendorSvc service.VendorService) http.HandlerFunc {
+func saveInferenceLog(ctx context.Context, logRepo repo.InferenceLogRepository, identity app_middleware.Identity, reqPayload, respPayload []byte, errMsg string, reqTime, respTime time.Time) {
+	var apiKeyID sql.NullInt64
+	if identity.APIKeyID != nil {
+		apiKeyID = sql.NullInt64{Int64: *identity.APIKeyID, Valid: true}
+	}
+
+	var respRaw pqtype.NullRawMessage
+	if respPayload != nil {
+		respRaw = pqtype.NullRawMessage{RawMessage: respPayload, Valid: true}
+	}
+
+	var errStr sql.NullString
+	if errMsg != "" {
+		errStr = sql.NullString{String: errMsg, Valid: true}
+	}
+
+	params := db.CreateInferenceLogParams{
+		UserID:          identity.UserID,
+		ApiKeyID:        apiKeyID,
+		RequestPayload:  reqPayload,
+		ResponsePayload: respRaw,
+		Error:           errStr,
+		RequestTime:     reqTime,
+		ResponseTime:    respTime,
+	}
+
+	if err := logRepo.CreateInferenceLog(ctx, params); err != nil {
+		log.Error().Err(err).Msg("failed to log inference")
+	}
+}
+
+func PredictHandler(vendorSvc service.VendorService, logRepo repo.InferenceLogRepository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		identity, ok := app_middleware.IdentityFrom(r.Context())
+		if !ok {
+			response.RespondWithError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+
+		reqTime := time.Now()
+
+		bodyBytes, err := io.ReadAll(r.Body)
+		if err != nil {
+			respTime := time.Now()
+			saveInferenceLog(r.Context(), logRepo, identity, bodyBytes, nil, "invalid request body", reqTime, respTime)
+			response.RespondWithError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+
 		var req service.PredictRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		if err := json.Unmarshal(bodyBytes, &req); err != nil {
+			respTime := time.Now()
+			saveInferenceLog(r.Context(), logRepo, identity, bodyBytes, nil, "invalid request body", reqTime, respTime)
 			response.RespondWithError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
 
 		if err := validate.Struct(req); err != nil {
+			respTime := time.Now()
+			sanitizedReqBytes, _ := json.Marshal(service.PredictRequest{Model: req.Model, Features: maskSensitiveData(req.Features)})
+			saveInferenceLog(r.Context(), logRepo, identity, sanitizedReqBytes, nil, "validation failed: "+err.Error(), reqTime, respTime)
 			response.RespondWithError(w, http.StatusBadRequest, "validation failed: "+err.Error())
 			return
 		}
 
 		resp, err := vendorSvc.Predict(r.Context(), req)
+		respTime := time.Now()
+
+		sanitizedReqBytes, _ := json.Marshal(service.PredictRequest{Model: req.Model, Features: maskSensitiveData(req.Features)})
+		var respBytes []byte
+		if err == nil {
+			respBytes, _ = json.Marshal(resp)
+		}
+
+		errMsg := ""
+		if err != nil {
+			errMsg = err.Error()
+		}
+		saveInferenceLog(r.Context(), logRepo, identity, sanitizedReqBytes, respBytes, errMsg, reqTime, respTime)
+
 		if err != nil {
 			response.RespondWithError(w, http.StatusBadGateway, err.Error())
 			return

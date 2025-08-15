@@ -6,7 +6,10 @@ package db
 
 import (
 	"database/sql"
+	"encoding/json"
 	"time"
+
+	"github.com/sqlc-dev/pqtype"
 )
 
 type ApiKey struct {
@@ -18,6 +21,18 @@ type ApiKey struct {
 	RateRpm    int32          `json:"rate_rpm"`
 	LastUsedAt sql.NullTime   `json:"last_used_at"`
 	CreatedAt  time.Time      `json:"created_at"`
+}
+
+type InferenceLog struct {
+	ID              int64                 `json:"id"`
+	UserID          int64                 `json:"user_id"`
+	ApiKeyID        sql.NullInt64         `json:"api_key_id"`
+	RequestPayload  json.RawMessage       `json:"request_payload"`
+	ResponsePayload pqtype.NullRawMessage `json:"response_payload"`
+	Error           sql.NullString        `json:"error"`
+	RequestTime     time.Time             `json:"request_time"`
+	ResponseTime    time.Time             `json:"response_time"`
+	CreatedAt       time.Time             `json:"created_at"`
 }
 
 type User struct {

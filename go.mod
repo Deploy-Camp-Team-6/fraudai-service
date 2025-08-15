@@ -19,6 +19,7 @@ require (
 	github.com/rs/zerolog v1.34.0
 	github.com/sony/gobreaker v1.0.0
 	github.com/spf13/viper v1.20.1
+	github.com/sqlc-dev/pqtype v0.3.0
 	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/otel v1.35.0
 	golang.org/x/crypto v0.38.0

@@ -47,6 +47,7 @@ func main() {
 	queries := db.New(dbConn)
 	userRepo := repo.NewUserRepository(queries)
 	apiKeyRepo := repo.NewAPIKeyRepository(queries)
+	logRepo := repo.NewInferenceLogRepository(queries)
 
 	// Read JWT secret
 	jwtSecret, err := os.ReadFile(cfg.JWTSecretFile)
@@ -62,7 +63,7 @@ func main() {
 	authSvc := service.NewAuthService(userRepo, jwtSecret, 24*time.Hour)
 
 	// Setup router
-	router := httptransport.NewRouter(&cfg, dbConn, redisClient, userRepo, apiKeyRepo, profileSvc, apiKeySvc, vendorSvc, authSvc, logger)
+	router := httptransport.NewRouter(&cfg, dbConn, redisClient, userRepo, apiKeyRepo, logRepo, profileSvc, apiKeySvc, vendorSvc, authSvc, logger)
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf("%s:%d", cfg.HTTPAddr, cfg.HTTPPort),
