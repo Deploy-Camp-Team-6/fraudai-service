@@ -18,14 +18,26 @@ secrets:
 services:
   fraudai-service:
     image: ${IMAGE}
+    networks:
+      - traefik-public
+      - fraudai-internal
+      - mlops-internal
+      - redis-internal
     deploy:
-      replicas: 2
+      replicas: 1
       update_config:
         parallelism: 1
         delay: 10s
         order: stop-first
       restart_policy:
         condition: on-failure
+      labels:
+        - traefik.enable=true
+        - traefik.http.services.fraudai-service.loadbalancer.server.port=8080
+        - traefik.http.routers.fraudai-service.rule=Host(`${DOMAIN}`)
+        - traefik.http.routers.fraudai-service.entrypoints=websecure
+        - traefik.http.routers.fraudai-service.tls=true
+        - traefik.http.routers.fraudai-service.tls.certresolver=leresolver
     environment:
       APP_ENV: ${APP_ENV}
       PG_DSN: ${PG_DSN}
@@ -42,15 +54,3 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
-    networks:
-      - traefik-public
-      - fraudai-internal
-      - mlops-internal
-      - redis-internal
-    labels:
-      - traefik.enable=true
-      - traefik.http.services.fraudai-service.loadbalancer.server.port=8080
-      - traefik.http.routers.fraudai-service.rule=Host(`${DOMAIN}`)
-      - traefik.http.routers.fraudai-service.entrypoints=websecure
-      - traefik.http.routers.fraudai-service.tls=true
-      - traefik.http.routers.fraudai-service.tls.certresolver=leresolver
