@@ -43,6 +43,7 @@ This project is a template for a production-ready web API written in Go. It incl
     export PG_DSN="postgres://user:password@localhost:5432/app?sslmode=disable"
     export JWT_SECRET_FILE="jwt.secret"
     export REDIS_ADDR="localhost:6379"
+    export REDIS_PASSWORD="password"
     ```
     Create the `jwt.secret` file:
     ```bash

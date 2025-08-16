@@ -13,6 +13,8 @@ services:
     environment:
       - APP_ENV=production
       - PG_DSN=postgres://user:password@postgres:5432/app?sslmode=disable # Use a managed DB in prod
+      - REDIS_ADDR=redis:6379
+      - REDIS_PASSWORD=password
     secrets:
       - jwt_secret
     healthcheck:
@@ -38,6 +40,7 @@ services:
 
   redis:
     image: redis:7-alpine
+    command: ["redis-server", "--requirepass", "password"]
     networks:
       - web # Should be on a private network with the API
 
