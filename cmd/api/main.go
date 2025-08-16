@@ -46,7 +46,7 @@ func main() {
 	// Setup repositories
 	queries := db.New(dbConn)
 	userRepo := repo.NewUserRepository(queries)
-	apiKeyRepo := repo.NewAPIKeyRepository(queries)
+	apiKeyRepo := repo.NewAPIKeyRepository(queries, redisClient, time.Hour)
 	logRepo := repo.NewInferenceLogRepository(queries)
 
 	// Read JWT secret
