@@ -89,7 +89,7 @@ func TestAPIKeyHandler_PayloadTooLarge(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	handler := app_middleware.JWTAuth(secretFile, &stubUserRepo{})(APIKeyHandler(&stubAPIKeyService{}))
+	handler := app_middleware.JWTAuth(secret, &stubUserRepo{})(APIKeyHandler(&stubAPIKeyService{}))
 	handler.ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusRequestEntityTooLarge {

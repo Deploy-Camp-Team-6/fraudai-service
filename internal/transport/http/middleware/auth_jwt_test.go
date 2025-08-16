@@ -1,49 +1,16 @@
 package middleware
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	jwt "github.com/golang-jwt/jwt/v5"
-	"github.com/jules-labs/go-api-prod-template/internal/db"
 )
-
-// mockUserRepo implements repo.UserRepository for testing
-
-type mockUserRepo struct {
-	user db.GetUserByIDRow
-	err  error
-}
-
-func (m mockUserRepo) CreateUser(ctx context.Context, arg db.CreateUserParams) (db.CreateUserRow, error) {
-	return db.CreateUserRow{}, nil
-}
-
-func (m mockUserRepo) ListUsersPaged(ctx context.Context, arg db.ListUsersPagedParams) ([]db.ListUsersPagedRow, error) {
-	return nil, nil
-}
-
-func (m mockUserRepo) GetUserByID(ctx context.Context, id int64) (db.GetUserByIDRow, error) {
-	if m.err != nil {
-		return db.GetUserByIDRow{}, m.err
-	}
-	return m.user, nil
-}
-
-func (m mockUserRepo) GetUserByEmail(ctx context.Context, email string) (db.GetUserByEmailRow, error) {
-	return db.GetUserByEmailRow{}, nil
-}
-
-func (m mockUserRepo) GetUserByEmailForLogin(ctx context.Context, email string) (db.GetUserByEmailForLoginRow, error) {
-	return db.GetUserByEmailForLoginRow{}, nil
-}
 
 func TestJWTAuth(t *testing.T) {
 	secret := []byte("test-secret")
-	userRepo := mockUserRepo{user: db.GetUserByIDRow{ID: 1, Plan: "basic", CreatedAt: time.Now(), UpdatedAt: time.Now()}}
+	userRepo := mockUserRepo{}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"user_id": 1})
 	tokenStr, err := token.SignedString(secret)
