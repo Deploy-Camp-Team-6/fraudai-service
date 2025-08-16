@@ -89,7 +89,8 @@ func NewRouter(
 		v1.Route("/inference", func(r chi.Router) {
 			r.Use(vendorAuth)
 			r.Get("/models", ListModelsHandler(vendorSvc))
-			r.Post("/predict", PredictHandler(vendorSvc, logRepo))
+			rateLimiter := app_middleware.PredictRateLimiter(redisClient, cfg.PredictRateLimit, cfg.PredictRateWindow)
+			r.With(rateLimiter).Post("/predict", PredictHandler(vendorSvc, logRepo))
 		})
 	})
 
