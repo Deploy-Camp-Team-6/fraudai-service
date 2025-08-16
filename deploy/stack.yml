@@ -1,5 +1,19 @@
 version: '3.8'
 
+networks:
+  traefik-public:
+    external: true
+  fraudai-internal:
+    external: true
+  mlops-internal:
+    external: true
+  redis-internal:
+    external: true
+
+secrets:
+  jwt_secret:
+    external: true
+
 services:
   fraudai-service:
     image: ${IMAGE}
@@ -8,23 +22,25 @@ services:
       update_config:
         parallelism: 1
         delay: 10s
+        order: stop-first
       restart_policy:
         condition: on-failure
     environment:
-      - APP_ENV=${APP_ENV}
-      - PG_DSN=${PG_DSN}
-      - REDIS_ADDR=${REDIS_ADDR}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
-      - VENDOR_BASE_URL=${VENDOR_BASE_URL}
+      APP_ENV: ${APP_ENV}
+      PG_DSN: ${PG_DSN}
+      REDIS_ADDR: ${REDIS_ADDR}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+      VENDOR_BASE_URL: ${VENDOR_BASE_URL}
+      JWT_SECRET_FILE: /run/secrets/jwt_secret
     secrets:
-      - jwt_secret
+      - source: jwt_secret
+        target: jwt_secret
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/healthz"]
       interval: 10s
       timeout: 5s
       retries: 3
-    ports:
     networks:
       - traefik-public
       - fraudai-internal
@@ -32,22 +48,9 @@ services:
       - redis-internal
     labels:
       - traefik.enable=true
+      - traefik.docker.network=traefik-public
       - traefik.http.services.fraudai-service.loadbalancer.server.port=8080
       - traefik.http.routers.fraudai-service.rule=Host(`${DOMAIN}`)
       - traefik.http.routers.fraudai-service.entrypoints=websecure
       - traefik.http.routers.fraudai-service.tls=true
       - traefik.http.routers.fraudai-service.tls.certresolver=leresolver
-
-secrets:
-  jwt_secret:
-    external: true
-
-networks:
-  redis-internal:
-    external: true
-  mlops-internal:
-    external: true
-  fraudai-internal:
-    external: true
-  traefik-public:
-    external: true

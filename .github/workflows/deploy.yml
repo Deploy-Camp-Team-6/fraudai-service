@@ -4,6 +4,14 @@ on:
   push:
     branches: ["main"]
   pull_request:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        type: choice
+        required: true
+        options: [staging, production]
+        default: staging
 
 env:
   REGISTRY: ghcr.io
@@ -23,41 +31,143 @@ jobs:
   build:
     needs: test
     runs-on: ubuntu-latest
+    outputs:
+      image_ref: ${{ steps.meta.outputs.image_ref }}
+      tag: ${{ steps.meta.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Determine environment + tag
+        id: meta
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            ENV="${{ github.event.inputs.environment }}"
+          else
+            ENV="staging"
+          fi
+          SHA_SHORT="${GITHUB_SHA::7}"
+          TAG="${ENV}-${SHA_SHORT}"
+          IMAGE_REF="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${TAG}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "image_ref=${IMAGE_REF}" >> "$GITHUB_OUTPUT"
+
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.REGISTRY_USERNAME }}
-          password: ${{ secrets.REGISTRY_PASSWORD }}
-      - uses: docker/build-push-action@v5
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & Push
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          platforms: linux/amd64
+          tags: |
+            ${{ steps.meta.outputs.image_ref }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+
+      - name: Prepare stack (inject image ref)
+        run: |
+          mkdir -p dist
+          sed "s|\${IMAGE}|${{ steps.meta.outputs.image_ref }}|g" deploy/stack.yml > dist/stack.resolved.yml
+
+      - name: Upload stack artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: stack-${{ steps.meta.outputs.tag }}
+          path: dist/stack.resolved.yml
 
   deploy:
     if: github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || 'staging' }}
+    concurrency:
+      group: swarm-${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || 'staging' }}
+      cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
-      - name: Copy stack file
+      - name: Download stack
+        uses: actions/download-artifact@v4
+        with:
+          name: stack-${{ needs.build.outputs.tag }}
+
+      - name: Copy stack to manager
         uses: appleboy/scp-action@v0.1.4
         with:
           host: ${{ secrets.SWARM_HOST }}
           username: ${{ secrets.SWARM_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: deploy/stack.yml
-          target: /tmp/stack.yml
+          port: ${{ secrets.SSH_PORT || 22 }}
+          source: stack.resolved.yml
+          target: /tmp
+          overwrite: true
+
       - name: Deploy to Swarm
-        uses: appleboy/ssh-action@v0.1.14
+        uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SWARM_HOST }}
           username: ${{ secrets.SWARM_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script_stop: true
           script: |
-            IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} docker stack deploy -c /tmp/stack.yml fraudai
+            set -euo pipefail
+            STACK_NAME="${{ secrets.SWARM_STACK_NAME }}"
+            IMAGE_REF="${{ needs.build.outputs.image_ref }}"
+
+            # Export variables used by stack.yml
+            export DOMAIN="${{ secrets.DOMAIN }}"
+            export APP_ENV="${{ vars.APP_ENV || 'staging' }}"
+            export PG_DSN="${{ secrets.PG_DSN }}"
+            export REDIS_ADDR="${{ secrets.REDIS_ADDR }}"
+            export REDIS_PASSWORD="${{ secrets.REDIS_PASSWORD }}"
+            export CORS_ALLOWED_ORIGINS="${{ secrets.CORS_ALLOWED_ORIGINS }}"
+            export VENDOR_BASE_URL="${{ secrets.VENDOR_BASE_URL }}"
+            export IMAGE="${IMAGE_REF}"
+
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+            # Ensure Swarm is active (no-op if already)
+            docker info | grep -q 'Swarm: active' || docker swarm init >/dev/null 2>&1 || true
+
+            # Ensure overlay networks exist (idempotent)
+            ensure_net() { docker network inspect "$1" >/dev/null 2>&1 || docker network create -d overlay --attachable "$1"; }
+            ensure_net traefik-public
+            ensure_net fraudai-internal
+            ensure_net mlops-internal
+            ensure_net redis-internal
+
+            # Ensure required secret exists (managed outside CI ideally)
+            if ! docker secret inspect jwt_secret >/dev/null 2>&1; then
+              echo "ERROR: docker secret 'jwt_secret' not found. Create it with: echo -n 'supersecret' | docker secret create jwt_secret -"
+              exit 1
+            fi
+
+            # Deploy
+            docker stack deploy -c /tmp/stack.resolved.yml "$STACK_NAME" --with-registry-auth
+
+            SERVICE="${STACK_NAME}_fraudai-service"
+            echo "Waiting for service $SERVICE to be healthy..."
+            for i in {1..30}; do
+              RUNNING=$(docker service ps --format '{{.CurrentState}}' "$SERVICE" | grep -c "Running" || true)
+              DESIRED=$(docker service inspect --format '{{ index .Spec.Mode.Replicated.Replicas }}' "$SERVICE" 2>/dev/null || echo 0)
+              if [ "$DESIRED" -gt 0 ] && [ "$RUNNING" -ge "$DESIRED" ]; then
+                echo "Service healthy: $RUNNING/$DESIRED replicas running."
+                exit 0
+              fi
+              echo "Waiting... ($RUNNING/$DESIRED)"
+              sleep 5
+            done
+            echo "Service did not reach healthy state in time." >&2
+            docker service ps "$SERVICE" || true
+            exit 1
