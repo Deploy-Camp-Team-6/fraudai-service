@@ -20,7 +20,7 @@ import (
 	app_middleware "github.com/jules-labs/go-api-prod-template/internal/transport/http/middleware"
 	"github.com/jules-labs/go-api-prod-template/internal/transport/http/response"
 	redis "github.com/redis/go-redis/v9"
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 	"github.com/sqlc-dev/pqtype"
 )
 
@@ -260,7 +260,7 @@ func ListModelsHandler(vendorSvc service.VendorService) http.HandlerFunc {
 	}
 }
 
-func saveInferenceLog(ctx context.Context, logRepo repo.InferenceLogRepository, identity app_middleware.Identity, reqPayload, respPayload []byte, errMsg string, reqTime, respTime time.Time) {
+func saveInferenceLog(ctx context.Context, logRepo repo.InferenceLogRepository, identity app_middleware.Identity, reqPayload, respPayload []byte, errMsg string, reqTime, respTime time.Time, logger zerolog.Logger) {
 	var apiKeyID sql.NullInt64
 	if identity.APIKeyID != nil {
 		apiKeyID = sql.NullInt64{Int64: *identity.APIKeyID, Valid: true}
@@ -287,11 +287,11 @@ func saveInferenceLog(ctx context.Context, logRepo repo.InferenceLogRepository, 
 	}
 
 	if err := logRepo.CreateInferenceLog(ctx, params); err != nil {
-		log.Error().Err(err).Msg("failed to log inference")
+		logger.Error().Err(err).Msg("failed to log inference")
 	}
 }
 
-func PredictHandler(vendorSvc service.VendorService, logRepo repo.InferenceLogRepository) http.HandlerFunc {
+func PredictHandler(vendorSvc service.VendorService, logRepo repo.InferenceLogRepository, logger zerolog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		identity, ok := app_middleware.IdentityFrom(r.Context())
 		if !ok {
@@ -311,7 +311,7 @@ func PredictHandler(vendorSvc service.VendorService, logRepo repo.InferenceLogRe
 				response.RespondWithError(w, http.StatusRequestEntityTooLarge, "payload too large")
 				return
 			}
-			saveInferenceLog(r.Context(), logRepo, identity, bodyBytes, nil, "invalid request body", reqTime, respTime)
+			saveInferenceLog(r.Context(), logRepo, identity, bodyBytes, nil, "invalid request body", reqTime, respTime, logger)
 			response.RespondWithError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
@@ -319,7 +319,7 @@ func PredictHandler(vendorSvc service.VendorService, logRepo repo.InferenceLogRe
 		var req service.PredictRequest
 		if err := json.Unmarshal(bodyBytes, &req); err != nil {
 			respTime := time.Now()
-			saveInferenceLog(r.Context(), logRepo, identity, bodyBytes, nil, "invalid request body", reqTime, respTime)
+			saveInferenceLog(r.Context(), logRepo, identity, bodyBytes, nil, "invalid request body", reqTime, respTime, logger)
 			response.RespondWithError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
@@ -327,7 +327,7 @@ func PredictHandler(vendorSvc service.VendorService, logRepo repo.InferenceLogRe
 		if err := validate.Struct(req); err != nil {
 			respTime := time.Now()
 			sanitizedReqBytes, _ := json.Marshal(service.PredictRequest{Model: req.Model, Features: maskSensitiveData(req.Features)})
-			saveInferenceLog(r.Context(), logRepo, identity, sanitizedReqBytes, nil, "validation failed: "+err.Error(), reqTime, respTime)
+			saveInferenceLog(r.Context(), logRepo, identity, sanitizedReqBytes, nil, "validation failed: "+err.Error(), reqTime, respTime, logger)
 			response.RespondWithError(w, http.StatusBadRequest, "validation failed: "+err.Error())
 			return
 		}
@@ -345,7 +345,7 @@ func PredictHandler(vendorSvc service.VendorService, logRepo repo.InferenceLogRe
 		if err != nil {
 			errMsg = err.Error()
 		}
-		saveInferenceLog(r.Context(), logRepo, identity, sanitizedReqBytes, respBytes, errMsg, reqTime, respTime)
+		saveInferenceLog(r.Context(), logRepo, identity, sanitizedReqBytes, respBytes, errMsg, reqTime, respTime, logger)
 
 		if err != nil {
 			response.RespondWithError(w, http.StatusBadGateway, err.Error())
