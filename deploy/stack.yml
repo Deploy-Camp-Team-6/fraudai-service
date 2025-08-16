@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   api:
-    image: go-api # Replace with your image registry
+    image: ${IMAGE}
     deploy:
       replicas: 2
       update_config:
