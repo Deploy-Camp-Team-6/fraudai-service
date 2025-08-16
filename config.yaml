@@ -12,7 +12,7 @@ redis_db: 0
 jwt_secret_file: ./jwt.secret
 
 rate_limit_rpm_default: 100
-predict_rate_limit: 100
+predict_rate_limit: 60
 predict_rate_window: 1m
 
 otel_exporter_otlp_endpoint: ""

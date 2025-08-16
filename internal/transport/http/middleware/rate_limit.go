@@ -10,9 +10,11 @@ import (
 	redis "github.com/redis/go-redis/v9"
 )
 
-// PredictRateLimiter enforces a rate limit for the /v1/inference/predict endpoint
-// on a per-user basis using Redis to store counters.
-func PredictRateLimiter(redisClient *redis.Client, limit int, window time.Duration) func(http.Handler) http.Handler {
+// RateLimiter enforces a rate limit for the given endpoint on a per-identity basis.
+// For JWT-authenticated requests, the provided jwtLimit is used. For API key requests
+// the limit is taken from the identity's RateRPM value. Limits are tracked in Redis
+// to ensure consistent enforcement across distributed instances.
+func RateLimiter(redisClient *redis.Client, endpoint string, jwtLimit int, window time.Duration) func(http.Handler) http.Handler {
 	script := redis.NewScript(`
 local current = redis.call("INCR", KEYS[1])
 if tonumber(current) == 1 then
@@ -30,9 +32,18 @@ return current
 				return
 			}
 
+			limit := jwtLimit
+			identifier := fmt.Sprintf("user:%d", identity.UserID)
+			if identity.APIKeyID != nil {
+				identifier = fmt.Sprintf("apikey:%d", *identity.APIKeyID)
+				if identity.RateRPM != nil {
+					limit = *identity.RateRPM
+				}
+			}
+
 			now := time.Now().UTC()
 			windowStart := now.Truncate(window).Unix()
-			key := fmt.Sprintf("ratelimit:%d:/v1/inference/predict:%d", identity.UserID, windowStart)
+			key := fmt.Sprintf("ratelimit:%s:%s:%d", identifier, endpoint, windowStart)
 
 			current, err := script.Run(r.Context(), redisClient, []string{key}, int(window.Seconds())).Int()
 			if err != nil {

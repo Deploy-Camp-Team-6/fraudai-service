@@ -8,7 +8,7 @@ This project is a template for a production-ready web API written in Go. It incl
 - **Database**: PostgreSQL with [pgx](https://github.com/jackc/pgx) and type-safe queries via [sqlc](https://github.com/sqlc-dev/sqlc).
 - **Migrations**: Handled with [golang-migrate](https://github.com/golang-migrate/migrate).
 - **Authentication**: API Key and JWT (HS256) based authentication.
-- **Rate Limiting**: Per-API key rate limiting using a sliding window algorithm with [redis_rate](https://github.com/go-redis/redis_rate).
+- **Rate Limiting**: Per-user or API key rate limiting using a sliding window algorithm backed by Redis.
 - **External API Client**: Resilient external API calls with [resty](https://github.com/go-resty/resty) and [gobreaker](https://github.com/sony/gobreaker).
 - **Configuration**: Managed with [viper](https://github.com/spf13/viper), loaded from a YAML file with secrets supplied via environment variables or container secrets.
 - **Observability**:
