@@ -47,8 +47,8 @@ func NewRouter(
 	}
 
 	// Health/readiness
-	r.Get("/healthz", HealthzHandler)
-	r.Get("/readyz", ReadinessHandler(db, redisClient))
+	r.HandleFunc("/healthz", HealthzHandler)
+	r.HandleFunc("/readyz", ReadinessHandler(db, redisClient))
 
 	// Docs
 	r.Get("/swagger/*", func(w http.ResponseWriter, r *http.Request) {
