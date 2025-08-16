@@ -92,8 +92,26 @@ paths:
     post:
       summary: Get fraud prediction
       security:
-        - ApiKeyAuth: []
         - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PredictRequest'
+      responses:
+        '200':
+          description: Prediction result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PredictResponse'
+
+  /fraud/predict:
+    post:
+      summary: Get fraud prediction
+      security:
+        - ApiKeyAuth: []
       requestBody:
         required: true
         content:
