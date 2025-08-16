@@ -2,9 +2,12 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"testing"
 	"time"
 
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jules-labs/go-api-prod-template/internal/db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -41,11 +44,11 @@ func (m *mockUserRepository) GetUserByEmailForLogin(ctx context.Context, email s
 }
 
 func TestAuthService_SignUp(t *testing.T) {
-	mockUserRepo := new(mockUserRepository)
-	authService := NewAuthService(mockUserRepo, []byte("secret"), time.Hour)
-
 	t.Run("success", func(t *testing.T) {
-		mockUserRepo.On("GetUserByEmail", mock.Anything, "test@example.com").Return(db.GetUserByEmailRow{}, assert.AnError).Once()
+		mockUserRepo := new(mockUserRepository)
+		authService := NewAuthService(mockUserRepo, []byte("secret"), time.Hour)
+
+		mockUserRepo.On("GetUserByEmail", mock.Anything, "test@example.com").Return(db.GetUserByEmailRow{}, sql.ErrNoRows).Once()
 		mockUserRepo.On("CreateUser", mock.Anything, mock.Anything).Return(db.CreateUserRow{ID: 1, Name: "Test User", Email: "test@example.com"}, nil).Once()
 
 		user, token, err := authService.SignUp(context.Background(), "Test User", "test@example.com", "password")
@@ -57,7 +60,35 @@ func TestAuthService_SignUp(t *testing.T) {
 	})
 
 	t.Run("email exists", func(t *testing.T) {
+		mockUserRepo := new(mockUserRepository)
+		authService := NewAuthService(mockUserRepo, []byte("secret"), time.Hour)
+
 		mockUserRepo.On("GetUserByEmail", mock.Anything, "test@example.com").Return(db.GetUserByEmailRow{}, nil).Once()
+
+		_, _, err := authService.SignUp(context.Background(), "Test User", "test@example.com", "password")
+
+		assert.ErrorIs(t, err, ErrEmailExists)
+		mockUserRepo.AssertExpectations(t)
+	})
+
+	t.Run("db error", func(t *testing.T) {
+		mockUserRepo := new(mockUserRepository)
+		authService := NewAuthService(mockUserRepo, []byte("secret"), time.Hour)
+
+		mockUserRepo.On("GetUserByEmail", mock.Anything, "test@example.com").Return(db.GetUserByEmailRow{}, assert.AnError).Once()
+
+		_, _, err := authService.SignUp(context.Background(), "Test User", "test@example.com", "password")
+
+		assert.ErrorIs(t, err, assert.AnError)
+		mockUserRepo.AssertExpectations(t)
+	})
+
+	t.Run("unique constraint", func(t *testing.T) {
+		mockUserRepo := new(mockUserRepository)
+		authService := NewAuthService(mockUserRepo, []byte("secret"), time.Hour)
+
+		mockUserRepo.On("GetUserByEmail", mock.Anything, "test@example.com").Return(db.GetUserByEmailRow{}, sql.ErrNoRows).Once()
+		mockUserRepo.On("CreateUser", mock.Anything, mock.Anything).Return(db.CreateUserRow{}, &pgconn.PgError{Code: pgerrcode.UniqueViolation}).Once()
 
 		_, _, err := authService.SignUp(context.Background(), "Test User", "test@example.com", "password")
 

@@ -2,10 +2,13 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jules-labs/go-api-prod-template/internal/db"
 	"github.com/jules-labs/go-api-prod-template/internal/repo"
 	"golang.org/x/crypto/bcrypt"
@@ -41,6 +44,9 @@ func (s *authService) SignUp(ctx context.Context, name, email, password string) 
 	if err == nil {
 		return db.CreateUserRow{}, "", ErrEmailExists
 	}
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return db.CreateUserRow{}, "", err
+	}
 
 	// Hash password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -57,6 +63,10 @@ func (s *authService) SignUp(ctx context.Context, name, email, password string) 
 	}
 	user, err := s.userRepo.CreateUser(ctx, params)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
+			return db.CreateUserRow{}, "", ErrEmailExists
+		}
 		return db.CreateUserRow{}, "", err
 	}
 
