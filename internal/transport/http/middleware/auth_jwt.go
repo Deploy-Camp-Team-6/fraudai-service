@@ -3,7 +3,6 @@ package middleware
 import (
 	"context"
 	"net/http"
-	"os"
 	"strings"
 
 	jwt "github.com/golang-jwt/jwt/v5"
@@ -11,7 +10,7 @@ import (
 	"github.com/jules-labs/go-api-prod-template/internal/transport/http/response"
 )
 
-func JWTAuth(jwtSecretFile string, userRepo repo.UserRepository) func(http.Handler) http.Handler {
+func JWTAuth(secret []byte, userRepo repo.UserRepository) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// If identity is already present, just pass through
@@ -35,12 +34,6 @@ func JWTAuth(jwtSecretFile string, userRepo repo.UserRepository) func(http.Handl
 				return
 			}
 			tokenString := parts[1]
-
-			secret, err := os.ReadFile(jwtSecretFile)
-			if err != nil {
-				response.RespondWithError(w, http.StatusInternalServerError, "could not read jwt secret")
-				return
-			}
 
 			token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
