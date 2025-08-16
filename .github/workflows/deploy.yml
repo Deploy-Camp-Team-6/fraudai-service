@@ -12,9 +12,14 @@ on:
         options: [staging, production]
         default: staging
 
+permissions:
+  contents: read
+  packages: write
+  id-token: write   # needed if using provenance attestations
+
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: fraudai-service
 
 jobs:
   test:
@@ -33,6 +38,7 @@ jobs:
     outputs:
       image_ref: ${{ steps.meta.outputs.image_ref }}
       tag: ${{ steps.meta.outputs.tag }}
+      owner_lc: ${{ steps.meta.outputs.owner_lc }}
     steps:
       - uses: actions/checkout@v4
 
@@ -47,9 +53,13 @@ jobs:
           fi
           SHA_SHORT="${GITHUB_SHA::7}"
           TAG="${ENV}-${SHA_SHORT}"
-          IMAGE_REF="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${TAG}"
-          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
-          echo "image_ref=${IMAGE_REF}" >> "$GITHUB_OUTPUT"
+          OWNER_LC="$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')"
+          IMAGE_REF="${{ env.REGISTRY }}/${OWNER_LC}/${{ env.IMAGE_NAME }}:${TAG}"
+          {
+            echo "tag=${TAG}"
+            echo "owner_lc=${OWNER_LC}"
+            echo "image_ref=${IMAGE_REF}"
+          } >> "$GITHUB_OUTPUT"
 
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
@@ -70,9 +80,9 @@ jobs:
           platforms: linux/amd64
           tags: |
             ${{ steps.meta.outputs.image_ref }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
-          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+            ${{ env.REGISTRY }}/${{ steps.meta.outputs.owner_lc }}/${{ env.IMAGE_NAME }}:latest
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ steps.meta.outputs.owner_lc }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ steps.meta.outputs.owner_lc }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
 
       - name: Prepare stack (inject image ref)
         run: |
@@ -124,7 +134,6 @@ jobs:
             STACK_NAME="${{ secrets.SWARM_STACK_NAME }}"
             IMAGE_REF="${{ needs.build.outputs.image_ref }}"
 
-            # Export variables used by stack.yml
             export DOMAIN="${{ secrets.DOMAIN }}"
             export APP_ENV="${{ vars.APP_ENV || 'staging' }}"
             export PG_DSN="${{ secrets.PG_DSN }}"
@@ -136,23 +145,19 @@ jobs:
 
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
-            # Ensure Swarm is active (no-op if already)
             docker info | grep -q 'Swarm: active' || docker swarm init >/dev/null 2>&1 || true
 
-            # Ensure overlay networks exist (idempotent)
             ensure_net() { docker network inspect "$1" >/dev/null 2>&1 || docker network create -d overlay --attachable "$1"; }
             ensure_net traefik-public
             ensure_net fraudai-internal
             ensure_net mlops-internal
             ensure_net redis-internal
 
-            # Ensure required secret exists (managed outside CI ideally)
             if ! docker secret inspect jwt_secret >/dev/null 2>&1; then
               echo "ERROR: docker secret 'jwt_secret' not found. Create it with: echo -n 'supersecret' | docker secret create jwt_secret -"
               exit 1
             fi
 
-            # Deploy
             docker stack deploy -c /tmp/stack.resolved.yml "$STACK_NAME" --with-registry-auth
 
             SERVICE="${STACK_NAME}_fraudai-service"
