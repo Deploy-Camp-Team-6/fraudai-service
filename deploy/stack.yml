@@ -48,7 +48,6 @@ services:
       - redis-internal
     labels:
       - traefik.enable=true
-      - traefik.docker.network=traefik-public
       - traefik.http.services.fraudai-service.loadbalancer.server.port=8080
       - traefik.http.routers.fraudai-service.rule=Host(`${DOMAIN}`)
       - traefik.http.routers.fraudai-service.entrypoints=websecure
