@@ -2,7 +2,7 @@ version: '3.8'
 
 networks:
   traefik-public:
-    driver: true
+    driver: overlay
     external: true
   fraudai-internal:
     external: true
