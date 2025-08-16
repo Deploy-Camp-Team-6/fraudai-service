@@ -27,7 +27,9 @@ type Config struct {
 
 	JWTSecretFile string `mapstructure:"JWT_SECRET_FILE"`
 
-	RateLimitRPMDefault int `mapstructure:"RATE_LIMIT_RPM_DEFAULT"`
+	RateLimitRPMDefault int           `mapstructure:"RATE_LIMIT_RPM_DEFAULT"`
+	PredictRateLimit    int           `mapstructure:"PREDICT_RATE_LIMIT"`
+	PredictRateWindow   time.Duration `mapstructure:"PREDICT_RATE_WINDOW"`
 
 	OtelExporterOTLPEndpoint string `mapstructure:"OTEL_EXPORTER_OTLP_ENDPOINT"`
 	OtelServiceName          string `mapstructure:"OTEL_SERVICE_NAME"`
@@ -60,6 +62,8 @@ func LoadConfig() (config Config, err error) {
 	viper.SetDefault("PG_MAX_IDLE_CONNS", 25)
 	viper.SetDefault("PG_CONN_MAX_LIFETIME", "5m")
 	viper.SetDefault("RATE_LIMIT_RPM_DEFAULT", 100)
+	viper.SetDefault("PREDICT_RATE_LIMIT", 100)
+	viper.SetDefault("PREDICT_RATE_WINDOW", "1m")
 	viper.SetDefault("OTEL_SERVICE_NAME", "go-api")
 	viper.SetDefault("CORS_ALLOWED_ORIGINS", []string{"*"})
 	viper.SetDefault("DEBUG", false)
