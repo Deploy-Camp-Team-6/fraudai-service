@@ -24,3 +24,6 @@ cors_allowed_origins:
 
 vendor_base_url: "http://localhost:8000"
 debug: true
+
+log_level: warn
+

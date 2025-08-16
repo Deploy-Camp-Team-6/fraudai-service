@@ -39,6 +39,8 @@ type Config struct {
 	VendorBaseURL string `mapstructure:"VENDOR_BASE_URL"`
 	VendorToken   string `mapstructure:"VENDOR_TOKEN"`
 
+	LogLevel string `mapstructure:"LOG_LEVEL"`
+
 	Debug bool `mapstructure:"DEBUG"`
 }
 
@@ -65,6 +67,7 @@ func LoadConfig() (config Config, err error) {
 	viper.SetDefault("PREDICT_RATE_LIMIT", 60)
 	viper.SetDefault("PREDICT_RATE_WINDOW", "1m")
 	viper.SetDefault("OTEL_SERVICE_NAME", "go-api")
+	viper.SetDefault("LOG_LEVEL", "info")
 	viper.SetDefault("DEBUG", false)
 
 	if corsStr := viper.GetString("CORS_ALLOWED_ORIGINS"); corsStr != "" {
@@ -76,7 +79,7 @@ func LoadConfig() (config Config, err error) {
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
-	for _, key := range []string{"PG_DSN", "REDIS_ADDR", "REDIS_PASSWORD", "VENDOR_TOKEN", "JWT_SECRET_FILE"} {
+	for _, key := range []string{"LOG_LEVEL", "PG_DSN", "REDIS_ADDR", "REDIS_PASSWORD", "VENDOR_TOKEN", "JWT_SECRET_FILE"} {
 		_ = viper.BindEnv(key)
 	}
 

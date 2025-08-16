@@ -45,6 +45,7 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
       VENDOR_BASE_URL: ${VENDOR_BASE_URL}
+      LOG_LEVEL: warn
       JWT_SECRET_FILE: /run/secrets/jwt_secret
     secrets:
       - source: jwt_secret

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -25,8 +26,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	logger := observability.NewConsoleLogger(cfg.Debug)
-	logger.Info().Msgf("starting %s service in %s mode", cfg.OtelServiceName, cfg.AppEnv)
+	logger := observability.NewConsoleLogger(cfg.LogLevel)
+	slog.Info("starting %s service in %s mode", cfg.OtelServiceName, cfg.AppEnv)
 
 	// Initialize DB
 	dbConn, err := db.NewDatabase(cfg.PGDSN, cfg.PGMaxOpenConns, cfg.PGMaxIdleConns, cfg.PGConnMaxLifetime)
@@ -83,7 +84,7 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	logger.Info().Msg("shutting down server...")
+	slog.Info("shutting down server...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -92,5 +93,5 @@ func main() {
 		logger.Fatal().Err(err).Msg("server forced to shutdown")
 	}
 
-	logger.Info().Msg("server exiting")
+	slog.Info("server exiting")
 }
