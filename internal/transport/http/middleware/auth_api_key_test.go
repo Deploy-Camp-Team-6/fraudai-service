@@ -43,7 +43,7 @@ func (m mockUserRepo) ListUsersPaged(ctx context.Context, arg db.ListUsersPagedP
 }
 
 func (m mockUserRepo) GetUserByID(ctx context.Context, id int64) (db.GetUserByIDRow, error) {
-	return db.GetUserByIDRow{}, nil
+	return db.GetUserByIDRow{ID: id, Plan: "free"}, nil
 }
 
 func (m mockUserRepo) GetUserByEmail(ctx context.Context, email string) (db.GetUserByEmailRow, error) {

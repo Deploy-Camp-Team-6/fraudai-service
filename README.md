@@ -24,7 +24,7 @@ This project is a template for a production-ready web API written in Go. It incl
 
 ### Prerequisites
 
-- Go 1.22+
+- Go 1.24+
 - Docker and Docker Compose
 - `make`
 - `migrate` CLI: `go install -v github.com/golang-migrate/migrate/v4/cmd/migrate@latest`
