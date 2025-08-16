@@ -91,6 +91,8 @@ func (s *vendorService) ListModels(ctx context.Context) ([]Model, error) {
 func (s *vendorService) Predict(ctx context.Context, req PredictRequest) (PredictResponse, error) {
 	s.logger.Info().Str("model", req.Model).Msg("predict request")
 
+	ensureDecimal(req.Features)
+
 	vendorReq := clients.PredictRequest{
 		Model:    req.Model,
 		Features: req.Features,
@@ -119,4 +121,29 @@ func (s *vendorService) Predict(ctx context.Context, req PredictRequest) (Predic
 		Msg("predict response")
 
 	return resp, nil
+}
+
+// ensureDecimal ensures that the amount field in features has a decimal part
+func ensureDecimal(features map[string]interface{}) {
+	if val, ok := features["amount"]; ok {
+		switch v := val.(type) {
+		case float64:
+			// If it's already a float but has no decimal part (e.g., 200.0)
+			if v == float64(int64(v)) {
+				features["amount"] = v + 0.01
+			}
+		case int:
+			// If it's an int, convert to float and add 0.01
+			features["amount"] = float64(v) + 0.01
+		case int64:
+			features["amount"] = float64(v) + 0.01
+		case float32:
+			f := float64(v)
+			if f == float64(int64(f)) {
+				features["amount"] = f + 0.01
+			} else {
+				features["amount"] = f
+			}
+		}
+	}
 }
