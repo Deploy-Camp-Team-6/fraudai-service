@@ -26,6 +26,8 @@ import (
 
 var validate = validator.New()
 
+const maxBodyBytes = 1 << 20 // 1MB
+
 func HealthzHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte("ok"))
@@ -119,7 +121,13 @@ func APIKeyHandler(apiKeySvc service.APIKeyService) http.HandlerFunc {
 		}
 
 		var req apiKeyRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxBodyBytes))
+		if err := decoder.Decode(&req); err != nil {
+			var maxErr *http.MaxBytesError
+			if errors.As(err, &maxErr) {
+				response.RespondWithError(w, http.StatusRequestEntityTooLarge, "payload too large")
+				return
+			}
 			response.RespondWithError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
@@ -293,9 +301,16 @@ func PredictHandler(vendorSvc service.VendorService, logRepo repo.InferenceLogRe
 
 		reqTime := time.Now()
 
-		bodyBytes, err := io.ReadAll(r.Body)
+		bodyReader := http.MaxBytesReader(w, r.Body, maxBodyBytes)
+		bodyBytes, err := io.ReadAll(bodyReader)
 		if err != nil {
 			respTime := time.Now()
+			var maxErr *http.MaxBytesError
+			if errors.As(err, &maxErr) {
+				saveInferenceLog(r.Context(), logRepo, identity, nil, nil, "payload too large", reqTime, respTime)
+				response.RespondWithError(w, http.StatusRequestEntityTooLarge, "payload too large")
+				return
+			}
 			saveInferenceLog(r.Context(), logRepo, identity, bodyBytes, nil, "invalid request body", reqTime, respTime, logger)
 			response.RespondWithError(w, http.StatusBadRequest, "invalid request body")
 			return

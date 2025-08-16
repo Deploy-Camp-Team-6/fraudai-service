@@ -27,6 +27,7 @@ func NewRouter(
 	apiKeySvc service.APIKeyService,
 	vendorSvc service.VendorService,
 	authSvc service.AuthService,
+	jwtSecret []byte,
 	logger zerolog.Logger,
 ) http.Handler {
 	r := chi.NewRouter()
@@ -58,7 +59,7 @@ func NewRouter(
 	// API v1
 	r.Route("/v1", func(v1 chi.Router) {
 		// Auth
-		jwtAuth := app_middleware.JWTAuth(cfg.JWTSecretFile, userRepo)
+		jwtAuth := app_middleware.JWTAuth(jwtSecret, userRepo)
 		v1.Route("/auth", func(auth chi.Router) {
 			auth.Post("/sign-up", SignUpHandler(authSvc))
 			auth.Post("/sign-in", SignInHandler(authSvc))

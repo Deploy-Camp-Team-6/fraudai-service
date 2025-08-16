@@ -2,6 +2,9 @@ package middleware
 
 import (
 	"context"
+	"database/sql"
+	"errors"
+	"log"
 	"net/http"
 
 	"github.com/jules-labs/go-api-prod-template/internal/repo"
@@ -21,7 +24,12 @@ func APIKeyAuth(apiKeyRepo repo.APIKeyRepository, userRepo repo.UserRepository) 
 			hashedKey := repo.HashAPIKey(apiKey)
 			apiKeyData, err := apiKeyRepo.GetAPIKeyByHash(r.Context(), hashedKey)
 			if err != nil {
-				response.RespondWithError(w, http.StatusUnauthorized, "invalid API key")
+				if errors.Is(err, sql.ErrNoRows) {
+					response.RespondWithError(w, http.StatusUnauthorized, "invalid API key")
+				} else {
+					log.Printf("GetAPIKeyByHash error: %v", err)
+					response.RespondWithError(w, http.StatusInternalServerError, "could not retrieve API key")
+				}
 				return
 			}
 
