@@ -8,6 +8,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -25,6 +26,42 @@ import (
 )
 
 var validate = validator.New()
+
+func validationErrorMessage(err error) string {
+	if errs, ok := err.(validator.ValidationErrors); ok {
+		e := errs[0]
+		ns := strings.Split(e.StructNamespace(), ".")[1:]
+		t := reflect.TypeOf(predictRequest{})
+		fieldName := ""
+		for i, name := range ns {
+			f, ok := t.FieldByName(name)
+			if !ok {
+				fieldName = strings.ToLower(name)
+				break
+			}
+			tag := f.Tag.Get("json")
+			tagName := strings.Split(tag, ",")[0]
+			if i == len(ns)-1 {
+				if tagName != "" {
+					fieldName = tagName
+				} else {
+					fieldName = strings.ToLower(name)
+				}
+			} else {
+				t = f.Type
+			}
+		}
+		switch e.Tag() {
+		case "required":
+			return fieldName + " is required"
+		case "oneof":
+			return fieldName + " must be one of [" + e.Param() + "]"
+		default:
+			return "invalid " + fieldName
+		}
+	}
+	return "invalid request"
+}
 
 const maxBodyBytes = 1 << 20 // 1MB
 
@@ -345,8 +382,9 @@ func PredictHandler(vendorSvc service.VendorService, logRepo repo.InferenceLogRe
 				"device_type":    req.Features.DeviceType,
 			}
 			sanitizedReqBytes, _ := json.Marshal(service.PredictRequest{Model: req.Model, Features: maskSensitiveData(featuresMap)})
-			saveInferenceLog(r.Context(), logRepo, identity, sanitizedReqBytes, nil, "validation failed: "+err.Error(), reqTime, respTime, logger)
-			response.RespondWithError(w, http.StatusBadRequest, "validation failed: "+err.Error())
+			msg := validationErrorMessage(err)
+			saveInferenceLog(r.Context(), logRepo, identity, sanitizedReqBytes, nil, "validation failed: "+msg, reqTime, respTime, logger)
+			response.RespondWithError(w, http.StatusBadRequest, "validation failed: "+msg)
 			return
 		}
 
