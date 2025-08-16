@@ -25,7 +25,9 @@ COPY --from=builder /app/server .
 COPY --from=builder /app/migrations ./migrations
 COPY --from=builder /app/api/openapi.yaml ./api/openapi.yaml
 COPY --from=builder /app/config.yaml ./config.yaml
+COPY --from=builder /go/bin/migrate /usr/local/bin/migrate
+COPY --from=builder /app/entrypoint.sh ./entrypoint.sh
 
 EXPOSE 8080
 
-CMD ["./server"]
+ENTRYPOINT ["./entrypoint.sh"]

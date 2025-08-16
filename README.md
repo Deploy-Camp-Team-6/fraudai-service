@@ -107,6 +107,17 @@ curl http://localhost:8080/v1/profile-jwt \
 
 Configuration values are read from `config.yaml`. Secret values like `PG_DSN`, `REDIS_PASSWORD`, or `VENDOR_TOKEN` should be provided via environment variables or container secrets. See `internal/config/config.go` for all available options.
 
+## Deployment
+
+When the container starts, it automatically applies database migrations before launching the API server. The entrypoint runs:
+
+```sh
+migrate -path /root/migrations -database "$PG_DSN" up
+./server
+```
+
+Ensure the `PG_DSN` environment variable is set (for example via `deploy/stack.yml`) so the migrations can run successfully before the service begins accepting requests.
+
 ## Testing
 
 Run all tests:
@@ -114,6 +125,3 @@ Run all tests:
 make test
 ```
 This will run both unit and integration tests. Integration tests require Docker to be running.
-
-
-export PG_DSN="postgres://myuser:mypassword@localhost:5432/mydatabase?sslmode=disable"
