@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  api:
+  fraudai-service:
     image: ${IMAGE}
     deploy:
       replicas: 2
@@ -11,10 +11,11 @@ services:
       restart_policy:
         condition: on-failure
     environment:
-      - APP_ENV=production
-      - PG_DSN=postgres://user:password@postgres:5432/app?sslmode=disable # Use a managed DB in prod
-      - REDIS_ADDR=redis:6379
-      - REDIS_PASSWORD=password
+      - APP_ENV=staging
+      - PG_DSN=${PG_DSN}
+      - REDIS_ADDR=${REDIS_ADDR}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
     secrets:
       - jwt_secret
     healthcheck:
@@ -23,34 +24,20 @@ services:
       timeout: 5s
       retries: 3
     ports:
-      - "8080:8080" # Exposed via Traefik in a real setup
     networks:
-      - web
-
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=app
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - web # Should be on a private network with the API
-
-  redis:
-    image: redis:7-alpine
-    command: ["redis-server", "--requirepass", "password"]
-    networks:
-      - web # Should be on a private network with the API
-
-volumes:
-  postgres_data:
+      - traefik-public
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.fraudai-service.loadbalancer.server.port=8080
+      - traefik.http.routers.fraudai-service.rule=Host(`${DOMAIN}`)
+      - traefik.http.routers.fraudai-service.entrypoints=websecure
+      - traefik.http.routers.fraudai-service.tls=true
+      - traefik.http.routers.fraudai-service.tls.certresolver=leresolver
 
 secrets:
   jwt_secret:
     external: true
 
 networks:
-  web:
-    driver: overlay
+  traefik-public:
+    external: true
