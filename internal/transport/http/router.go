@@ -87,8 +87,12 @@ func NewRouter(
 		})
 
 		v1.Route("/inference", func(r chi.Router) {
-			r.Use(vendorAuth)
-			r.Get("/models", ListModelsHandler(vendorSvc))
+			r.With(vendorAuth).Get("/models", ListModelsHandler(vendorSvc))
+			r.With(jwtAuth).Post("/predict", PredictHandler(vendorSvc, logRepo))
+		})
+
+		v1.Route("/fraud", func(r chi.Router) {
+			r.Use(app_middleware.APIKeyAuth(apiKeyRepo, userRepo))
 			r.Post("/predict", PredictHandler(vendorSvc, logRepo))
 		})
 	})
