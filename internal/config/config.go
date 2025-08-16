@@ -76,7 +76,7 @@ func LoadConfig() (config Config, err error) {
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
-	for _, key := range []string{"PG_DSN", "REDIS_PASSWORD", "VENDOR_TOKEN", "JWT_SECRET_FILE"} {
+	for _, key := range []string{"PG_DSN", "REDIS_ADDR", "REDIS_PASSWORD", "VENDOR_TOKEN", "JWT_SECRET_FILE"} {
 		_ = viper.BindEnv(key)
 	}
 
