@@ -11,12 +11,12 @@ services:
       restart_policy:
         condition: on-failure
     environment:
-      - APP_ENV=staging
+      - APP_ENV=${APP_ENV}
       - PG_DSN=${PG_DSN}
       - REDIS_ADDR=${REDIS_ADDR}
       - REDIS_PASSWORD=${REDIS_PASSWORD}
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
-      - VENDOR_BASE_URL=http://inference-api:8000
+      - VENDOR_BASE_URL=${VENDOR_BASE_URL}
     secrets:
       - jwt_secret
     healthcheck:
@@ -28,6 +28,8 @@ services:
     networks:
       - traefik-public
       - fraudai-internal
+      - mlops-internal
+      - redis-internal
     labels:
       - traefik.enable=true
       - traefik.http.services.fraudai-service.loadbalancer.server.port=8080
@@ -41,6 +43,10 @@ secrets:
     external: true
 
 networks:
+  redis-internal:
+    external: true
+  mlops-internal:
+    external: true
   fraudai-internal:
     external: true
   traefik-public:
