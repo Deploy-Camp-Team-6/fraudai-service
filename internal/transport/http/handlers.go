@@ -291,6 +291,18 @@ func saveInferenceLog(ctx context.Context, logRepo repo.InferenceLogRepository, 
 	}
 }
 
+type predictFeatures struct {
+	TransactionID int64   `json:"transaction_id" validate:"required"`
+	Amount        float64 `json:"amount" validate:"required"`
+	MerchantType  string  `json:"merchant_type" validate:"required"`
+	DeviceType    string  `json:"device_type" validate:"required"`
+}
+
+type predictRequest struct {
+	Model    string          `json:"model" validate:"required,oneof=logreg lightgbm xgboost"`
+	Features predictFeatures `json:"features" validate:"required"`
+}
+
 func PredictHandler(vendorSvc service.VendorService, logRepo repo.InferenceLogRepository, logger zerolog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		identity, ok := app_middleware.IdentityFrom(r.Context())
@@ -316,7 +328,7 @@ func PredictHandler(vendorSvc service.VendorService, logRepo repo.InferenceLogRe
 			return
 		}
 
-		var req service.PredictRequest
+		var req predictRequest
 		if err := json.Unmarshal(bodyBytes, &req); err != nil {
 			respTime := time.Now()
 			saveInferenceLog(r.Context(), logRepo, identity, bodyBytes, nil, "invalid request body", reqTime, respTime, logger)
@@ -326,16 +338,31 @@ func PredictHandler(vendorSvc service.VendorService, logRepo repo.InferenceLogRe
 
 		if err := validate.Struct(req); err != nil {
 			respTime := time.Now()
-			sanitizedReqBytes, _ := json.Marshal(service.PredictRequest{Model: req.Model, Features: maskSensitiveData(req.Features)})
+			featuresMap := map[string]interface{}{
+				"transaction_id": req.Features.TransactionID,
+				"amount":         req.Features.Amount,
+				"merchant_type":  req.Features.MerchantType,
+				"device_type":    req.Features.DeviceType,
+			}
+			sanitizedReqBytes, _ := json.Marshal(service.PredictRequest{Model: req.Model, Features: maskSensitiveData(featuresMap)})
 			saveInferenceLog(r.Context(), logRepo, identity, sanitizedReqBytes, nil, "validation failed: "+err.Error(), reqTime, respTime, logger)
 			response.RespondWithError(w, http.StatusBadRequest, "validation failed: "+err.Error())
 			return
 		}
 
-		resp, err := vendorSvc.Predict(r.Context(), req)
+		featuresMap := map[string]interface{}{
+			"transaction_id": req.Features.TransactionID,
+			"amount":         req.Features.Amount,
+			"merchant_type":  req.Features.MerchantType,
+			"device_type":    req.Features.DeviceType,
+		}
+
+		serviceReq := service.PredictRequest{Model: req.Model, Features: featuresMap}
+
+		resp, err := vendorSvc.Predict(r.Context(), serviceReq)
 		respTime := time.Now()
 
-		sanitizedReqBytes, _ := json.Marshal(service.PredictRequest{Model: req.Model, Features: maskSensitiveData(req.Features)})
+		sanitizedReqBytes, _ := json.Marshal(service.PredictRequest{Model: serviceReq.Model, Features: maskSensitiveData(serviceReq.Features)})
 		var respBytes []byte
 		if err == nil {
 			respBytes, _ = json.Marshal(resp)

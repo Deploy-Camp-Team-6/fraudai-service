@@ -42,7 +42,7 @@ type Model struct {
 
 // PredictRequest contains the input for a prediction.
 type PredictRequest struct {
-	Model    string                 `json:"model" validate:"required"`
+	Model    string                 `json:"model" validate:"required,oneof=logreg lightgbm xgboost"`
 	Features map[string]interface{} `json:"features" validate:"required"`
 }
 
