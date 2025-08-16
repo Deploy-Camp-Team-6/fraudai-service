@@ -307,7 +307,7 @@ func PredictHandler(vendorSvc service.VendorService, logRepo repo.InferenceLogRe
 			respTime := time.Now()
 			var maxErr *http.MaxBytesError
 			if errors.As(err, &maxErr) {
-				saveInferenceLog(r.Context(), logRepo, identity, nil, nil, "payload too large", reqTime, respTime)
+				saveInferenceLog(r.Context(), logRepo, identity, nil, nil, "payload too large", reqTime, respTime, logger)
 				response.RespondWithError(w, http.StatusRequestEntityTooLarge, "payload too large")
 				return
 			}
