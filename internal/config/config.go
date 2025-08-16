@@ -65,8 +65,13 @@ func LoadConfig() (config Config, err error) {
 	viper.SetDefault("PREDICT_RATE_LIMIT", 60)
 	viper.SetDefault("PREDICT_RATE_WINDOW", "1m")
 	viper.SetDefault("OTEL_SERVICE_NAME", "go-api")
-	viper.SetDefault("CORS_ALLOWED_ORIGINS", []string{"*"})
 	viper.SetDefault("DEBUG", false)
+
+	if corsStr := viper.GetString("CORS_ALLOWED_ORIGINS"); corsStr != "" {
+		config.CORSAllowedOrigins = strings.Split(corsStr, ",")
+	} else {
+		config.CORSAllowedOrigins = []string{"*"}
+	}
 
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))

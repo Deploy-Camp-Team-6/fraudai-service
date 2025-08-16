@@ -18,7 +18,7 @@ This project is a template for a production-ready web API written in Go. It incl
     - Profiling with `net/http/pprof`.
 - **Testing**: Unit and integration tests using `testify` and `testcontainers-go`.
 - **Containerization**: Multi-stage `Dockerfile` for minimal images, with `docker-compose` for local development and a `stack.yml` for Docker Swarm deployment.
-- **CI/CD**: GitHub Actions workflow for automated testing, linting, and image publishing.
+- **CI/CD**: GitHub Actions workflow for testing, building, pushing, and deploying to Docker Swarm.
 
 ## Getting Started
 
