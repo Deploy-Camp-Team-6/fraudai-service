@@ -86,17 +86,19 @@ func NewRouter(
 			r.Get("/ping", VendorPingHandler(vendorSvc))
 		})
 
-		rateLimiter := app_middleware.PredictRateLimiter(redisClient, cfg.PredictRateLimit, cfg.PredictRateWindow)
+		modelsLimiter := app_middleware.RateLimiter(redisClient, "/v1/inference/models", cfg.PredictRateLimit, cfg.PredictRateWindow)
+		predictLimiter := app_middleware.RateLimiter(redisClient, "/v1/inference/predict", cfg.PredictRateLimit, cfg.PredictRateWindow)
+		fraudPredictLimiter := app_middleware.RateLimiter(redisClient, "/v1/fraud/predict", cfg.PredictRateLimit, cfg.PredictRateWindow)
 
 		v1.Route("/inference", func(r chi.Router) {
 			r.Use(vendorAuth)
-			r.Get("/models", ListModelsHandler(vendorSvc))
-			r.With(rateLimiter).With(jwtAuth).Post("/predict", PredictHandler(vendorSvc, logRepo))
+			r.With(modelsLimiter).Get("/models", ListModelsHandler(vendorSvc))
+			r.With(predictLimiter).With(jwtAuth).Post("/predict", PredictHandler(vendorSvc, logRepo))
 		})
 
 		v1.Route("/fraud", func(r chi.Router) {
 			r.Use(app_middleware.APIKeyAuth(apiKeyRepo, userRepo))
-			r.Post("/predict", PredictHandler(vendorSvc, logRepo))
+			r.With(fraudPredictLimiter).Post("/predict", PredictHandler(vendorSvc, logRepo))
 		})
 	})
 
