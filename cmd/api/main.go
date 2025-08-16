@@ -63,7 +63,7 @@ func main() {
 	authSvc := service.NewAuthService(userRepo, jwtSecret, 24*time.Hour)
 
 	// Setup router
-	router := httptransport.NewRouter(&cfg, dbConn, redisClient, userRepo, apiKeyRepo, logRepo, profileSvc, apiKeySvc, vendorSvc, authSvc, logger)
+	router := httptransport.NewRouter(&cfg, dbConn, redisClient, userRepo, apiKeyRepo, logRepo, profileSvc, apiKeySvc, vendorSvc, authSvc, jwtSecret, logger)
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf("%s:%d", cfg.HTTPAddr, cfg.HTTPPort),
