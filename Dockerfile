@@ -10,7 +10,7 @@ COPY . .
 
 # tooling (optional, handy in CI)
 RUN go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
-RUN go install github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 
 RUN CGO_ENABLED=0 GOOS=linux go build -v -o /app/server ./cmd/api
 
