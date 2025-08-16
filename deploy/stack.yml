@@ -2,6 +2,7 @@ version: '3.8'
 
 networks:
   traefik-public:
+    overlay: true
     external: true
   fraudai-internal:
     external: true
