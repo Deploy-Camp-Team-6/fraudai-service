@@ -13,11 +13,15 @@ import (
 )
 
 type mockAPIKeyRepo struct {
-	err error
+	err          error
+	updateCalled bool
 }
 
 func (m *mockAPIKeyRepo) GetAPIKeyByHash(ctx context.Context, keyHash []byte) (db.GetAPIKeyByHashRow, error) {
-	return db.GetAPIKeyByHashRow{}, m.err
+	if m.err != nil {
+		return db.GetAPIKeyByHashRow{}, m.err
+	}
+	return db.GetAPIKeyByHashRow{ID: 1, UserID: 1, KeyHash: keyHash, Active: true, RateRpm: 60}, nil
 }
 
 func (m *mockAPIKeyRepo) CreateAPIKey(ctx context.Context, arg db.CreateAPIKeyParams) (db.CreateAPIKeyRow, error) {
@@ -29,6 +33,11 @@ func (m *mockAPIKeyRepo) ListAPIKeysByUser(ctx context.Context, userID int64) ([
 }
 
 func (m *mockAPIKeyRepo) DeleteAPIKey(ctx context.Context, userID, keyID int64) error {
+	return nil
+}
+
+func (m *mockAPIKeyRepo) UpdateAPIKeyLastUsed(ctx context.Context, id int64) error {
+	m.updateCalled = true
 	return nil
 }
 
@@ -92,5 +101,33 @@ func TestAPIKeyAuth_GetAPIKeyByHashErrors(t *testing.T) {
 				t.Fatalf("next handler should not be called")
 			}
 		})
+	}
+}
+
+func TestAPIKeyAuth_UpdateAPIKeyLastUsedCalled(t *testing.T) {
+	apiRepo := &mockAPIKeyRepo{}
+	userRepo := mockUserRepo{}
+
+	called := false
+	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+	})
+
+	handler := APIKeyAuth(apiRepo, userRepo)(next)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("X-API-Key", "test")
+	rr := httptest.NewRecorder()
+
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rr.Code)
+	}
+	if !called {
+		t.Fatalf("next handler should be called")
+	}
+	if !apiRepo.updateCalled {
+		t.Fatalf("UpdateAPIKeyLastUsed was not called")
 	}
 }

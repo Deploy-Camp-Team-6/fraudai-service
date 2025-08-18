@@ -44,6 +44,10 @@ func APIKeyAuth(apiKeyRepo repo.APIKeyRepository, userRepo repo.UserRepository) 
 				return
 			}
 
+			if err := apiKeyRepo.UpdateAPIKeyLastUsed(r.Context(), apiKeyData.ID); err != nil {
+				log.Printf("UpdateAPIKeyLastUsed error: %v", err)
+			}
+
 			rate := int(apiKeyData.RateRpm)
 			identity := Identity{
 				UserID:   user.ID,

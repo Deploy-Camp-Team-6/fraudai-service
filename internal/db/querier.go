@@ -20,6 +20,7 @@ type Querier interface {
 	GetUserByID(ctx context.Context, id int64) (GetUserByIDRow, error)
 	ListAPIKeysByUser(ctx context.Context, userID int64) ([]ListAPIKeysByUserRow, error)
 	ListUsersPaged(ctx context.Context, arg ListUsersPagedParams) ([]ListUsersPagedRow, error)
+	UpdateAPIKeyLastUsed(ctx context.Context, id int64) error
 }
 
 var _ Querier = (*Queries)(nil)

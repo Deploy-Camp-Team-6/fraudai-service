@@ -11,3 +11,6 @@ SELECT id, label, key_hash, active, rate_rpm, last_used_at, created_at FROM api_
 
 -- name: DeleteAPIKey :exec
 DELETE FROM api_keys WHERE user_id = $1 AND id = $2;
+
+-- name: UpdateAPIKeyLastUsed :exec
+UPDATE api_keys SET last_used_at = NOW() WHERE id = $1;
