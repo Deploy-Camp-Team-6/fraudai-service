@@ -135,3 +135,12 @@ func (q *Queries) ListAPIKeysByUser(ctx context.Context, userID int64) ([]ListAP
 	}
 	return items, nil
 }
+
+const updateAPIKeyLastUsed = `-- name: UpdateAPIKeyLastUsed :exec
+UPDATE api_keys SET last_used_at = NOW() WHERE id = $1
+`
+
+func (q *Queries) UpdateAPIKeyLastUsed(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, updateAPIKeyLastUsed, id)
+	return err
+}

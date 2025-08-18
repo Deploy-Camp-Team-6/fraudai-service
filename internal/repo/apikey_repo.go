@@ -21,6 +21,7 @@ type APIKeyRepository interface {
 	CreateAPIKey(ctx context.Context, arg db.CreateAPIKeyParams) (db.CreateAPIKeyRow, error)
 	ListAPIKeysByUser(ctx context.Context, userID int64) ([]db.ListAPIKeysByUserRow, error)
 	DeleteAPIKey(ctx context.Context, userID, keyID int64) error
+	UpdateAPIKeyLastUsed(ctx context.Context, id int64) error
 }
 
 type postgresAPIKeyRepository struct {
@@ -133,6 +134,10 @@ func (r *postgresAPIKeyRepository) DeleteAPIKey(ctx context.Context, userID, key
 		}
 	}
 	return nil
+}
+
+func (r *postgresAPIKeyRepository) UpdateAPIKeyLastUsed(ctx context.Context, id int64) error {
+	return r.q.UpdateAPIKeyLastUsed(ctx, id)
 }
 
 // HashAPIKey creates a SHA256 hash of an API key.
